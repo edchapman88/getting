@@ -1,0 +1,4 @@
+(executable
+ (public_name getting)
+ (name main)
+ (libraries getting cohttp-lwt-unix ))
