@@ -12,6 +12,10 @@ bug-reports: "https://github.com/edchapman88/getting/issues"
 depends: [
   "ocaml"
   "dune" {>= "3.16"}
+  "cohttp"
+  "cohttp-lwt-unix"
+  "tls"
+  "tls-lwt"
   "odoc" {with-doc}
 ]
 build: [

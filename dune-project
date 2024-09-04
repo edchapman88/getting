@@ -19,7 +19,13 @@
  (name getting)
  (synopsis "Simulate an HTTP(S) load.")
  (description "A longer description")
- (depends ocaml dune cohttp tls)
+ (depends
+   ocaml
+   dune
+   cohttp
+   cohttp-lwt-unix
+   tls
+   tls-lwt)
  (tags
   (topics "to describe" your project)))
 
