@@ -2,6 +2,6 @@
  (public_name getting)
  (name main)
  (libraries 
-   getting
+   lib
    cohttp-lwt-unix
    ))

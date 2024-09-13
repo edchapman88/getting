@@ -1,2 +1,5 @@
 (library
- (name getting))
+ (name lib)
+ (libraries
+   uri
+   cohttp-lwt-unix))

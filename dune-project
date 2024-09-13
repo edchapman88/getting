@@ -20,12 +20,15 @@
  (synopsis "Simulate an HTTP(S) load.")
  (description "A longer description")
  (depends
+   odoc
+   utop
    ocaml
    dune
    cohttp
    cohttp-lwt-unix
    tls
-   tls-lwt)
+   tls-lwt
+   uri)
  (tags
   (topics "to describe" your project)))
 
