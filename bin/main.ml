@@ -22,11 +22,14 @@ let _run_res_parts =
       else failwith (Printf.sprintf "Request failed with [%d]" code)
 
 let make_load dest = Lib.Load.of_dest dest
-let map_body_of_res f res = res |> snd |> Cohttp_lwt.Body.to_string |> Lwt.map f
+
+let body_of_res (res : Lib.Request.res) =
+  res |> snd |> Cohttp_lwt.Body.to_string
 
 let () =
   let load = make_load (Uri.of_string "//localhost:3000") in
   let handle_res promised_res =
-    Lwt.bind promised_res (map_body_of_res print_endline) |> Lwt_main.run
+    let open Lwt.Infix in
+    promised_res >>= body_of_res >|= print_endline |> Lwt_main.run
   in
   Seq.iter handle_res load
