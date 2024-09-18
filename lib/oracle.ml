@@ -2,6 +2,10 @@ type score =
   | Success
   | Fail
 
+let string_of_score = function
+  | Success -> "1"
+  | Fail -> "0"
+
 let write_serial ?(baud = 115200) port =
   let module Serial0 = Serial.Make (struct
     let port = port

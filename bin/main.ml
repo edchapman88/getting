@@ -24,11 +24,24 @@ let handle_req req =
           (* On promise rejected. *)
             (fun _ -> Lwt.return Oracle.Fail)
   in
-  score >>= Oracle.write_score "/dev/stdout"
+  let module Serial0 = Serial.Make (struct
+    let port = "/dev/stdout"
+    let baud_rate = 115200
+  end) in
+  score >|= Oracle.string_of_score >>= Serial0.write_line
+
+let rec listen chan =
+  let open Domainslib in
+  let open Lwt.Infix in
+  let promised_write = Chan.recv chan |> handle_req in
+  promised_write >>= fun () -> listen chan
 
 let () =
   let load = make_load in
   let open Domainslib in
   let main_chan = Chan.make_unbounded () in
-  let _ = Domain.spawn (fun _ -> Lwt_main.run (Chan.recv main_chan)) in
-  Seq.iter (fun req -> Chan.send main_chan (handle_req req)) load
+  let _req_handler =
+    let top_promise : 'a Lwt.t = listen main_chan in
+    Domain.spawn (fun _ -> Lwt_main.run top_promise)
+  in
+  Seq.iter (Chan.send main_chan) load
