@@ -1,12 +1,12 @@
 (* hilbert = 169.254.220.46 *)
 module Serial0 = Serial.Make (struct
-  let port = "/dev/cu.usbmodem2102"
+  let port = "/dev/ttyACM0"
   let baud_rate = 115200
 end)
 
 let make_load =
   let open Lib.Load in
-  of_dest ~distribution:(Point 3.) (Uri.of_string "http://localhost:3000")
+  of_dest ~distribution:(Point 3.) (Uri.of_string "http://169.254.220.46:80")
 
 let handle_req req =
   let open Lib in
