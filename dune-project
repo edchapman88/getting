@@ -28,6 +28,8 @@
    cohttp-lwt-unix
    tls
    tls-lwt
+   serial
+   domainslib
    uri)
  (tags
   (topics "to describe" your project)))

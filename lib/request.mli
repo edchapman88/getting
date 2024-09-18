@@ -1,11 +1,19 @@
-type t = {
+type res = Cohttp.Response.t * Cohttp_lwt.Body.t
+(** A [Cohttp] response. *)
+
+(** A request is either [Sent] and of type [res Lwt.t] (which is a promised response), or [Failed] of type [exn] if the request failed to send (e.g. The connection was refused). *)
+type t =
+  | Sent of res Lwt.t
+  | Failed of exn
+
+type params = {
   src : Uri.t;
   dest : Uri.t;
 }
-(** Parameterised request, specifying only the properties of the request that are of interest. *)
+(** Configurable request parameters. *)
 
-type res = Cohttp.Response.t * Cohttp_lwt.Body.t
-(** A [Cohttp] response. *)
+val code_of_res : res -> int
+(** Convenience function to return the status code of a response as an [int]. *)
 
 val body_of_res : res -> string Lwt.t
 (** Convenience function to return a response body as a promised human readable string. *)
@@ -16,5 +24,5 @@ val meta_of_res : res -> string
 val s_meta_of_res : res -> Sexplib0.Sexp.t
 (** Same as [meta_of_res], but return early with a structured S expression. *)
 
-val send : t -> res Lwt.t
+val send : params -> t
 (** [send req] sends the request [req], returning an [Lwt.t] promise of a response [res]. *)

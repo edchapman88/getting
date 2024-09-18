@@ -18,6 +18,8 @@ depends: [
   "cohttp-lwt-unix"
   "tls"
   "tls-lwt"
+  "serial"
+  "domainslib"
   "uri"
 ]
 build: [

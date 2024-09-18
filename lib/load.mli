@@ -1,5 +1,5 @@
-type t = Request.res Lwt.t Seq.t
-(** A load is a lazily evaluated sequence of promised responses of type [Request.res]. *)
+type t = Request.t Seq.t
+(** A load is a lazily evaluated sequence of requests of type [Request.t]. *)
 
 (** Parameterised probability distrubutions *)
 type distr =
