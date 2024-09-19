@@ -1,4 +1,8 @@
 (* hilbert = 169.254.220.46 *)
+let () =
+  let open Lwt_sys in
+  print_endline (string_of_bool (have `libev))
+
 module Serial0 = Serial.Make (struct
   let port = "/dev/ttyACM0"
   let baud_rate = 115200
