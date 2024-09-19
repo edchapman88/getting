@@ -30,6 +30,7 @@
    tls-lwt
    serial
    domainslib
+   conf-libev
    uri)
  (tags
   (topics "to describe" your project)))
