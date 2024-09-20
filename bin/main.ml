@@ -80,13 +80,13 @@ let () =
   if Bool.not !allow_select then select_check ();
   if Bool.not !ignore_fd_limit then fd_limit_check ();
 
-  print_endline !serial_port;
   let module Serial' = Lib.Serial.Make (struct
     let port = !serial_port
     let baud_rate = 115200
   end) in
   (* 'Pack' the module as a first-class module. *)
   let serial_mod = (module Serial' : Lib.Serial_intf.Serial_type) in
+
   let load = make_load in
   let open Domainslib in
   (* Create a new OS thread channel to pass messages between this OS thread and any others spawned with [Domain.spawn]. *)
