@@ -2,5 +2,4 @@
  (name lib)
  (libraries
    uri
-   serial
    cohttp-lwt-unix))

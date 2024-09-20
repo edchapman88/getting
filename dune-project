@@ -22,13 +22,12 @@
  (depends
    odoc
    utop
-   ocaml
+   (ocaml (>= 5.2))
    dune
    cohttp
    cohttp-lwt-unix
    tls
    tls-lwt
-   serial
    domainslib
    conf-libev
    uri)
