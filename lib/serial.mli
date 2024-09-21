@@ -1,15 +1,9 @@
-open Serial_intf
+type config = {
+  baud : int;
+  port : string;
+}
 
-(** Given a Serial_config struct,
-creates a new module with a newly opened Serial connection.
-Most programs using the {!Serial} module start with something like:
-{[
-module Serial_config = struct
-	let port = "/dev/ttyUSB0"
-	let baud_rate = 115200
-end
+type t
 
-module Serial0 = Serial.Make(Serial_config)
-]}
-*)
-module Make (_ : Serial_config_type) : Serial_type
+val write_line : t -> string -> t Lwt.t
+val make : config -> t Lwt.t

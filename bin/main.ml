@@ -46,11 +46,9 @@ let make_load =
   (*of_dest ~distribution:(Point 0.01) (Uri.of_string "http://169.254.220.46:80")*)
   of_dest ~distribution:(Point 1.) (Uri.of_string "http://127.0.0.1:3000")
 
-let handle_req (serial_mod : (module Lib.Serial_intf.Serial_type)) req =
+let handle_req serial_conn req : Lib.Serial.t Lwt.t =
   let open Lib in
   let open Lwt.Infix in
-  (* Unpack the module. *)
-  let module Serial' = (val serial_mod : Serial_intf.Serial_type) in
   let score =
     match req with
     | Request.Failed e -> Lwt.return (Oracle.Fail (Printexc.to_string e))
@@ -67,26 +65,24 @@ let handle_req (serial_mod : (module Lib.Serial_intf.Serial_type)) req =
           (* On promise rejected. *)
             (fun e -> Lwt.return (Oracle.Fail (Printexc.to_string e)))
   in
-  score >|= Oracle.string_of_score >>= Serial'.write_line
+  let serial' =
+    score >|= Oracle.string_of_score >>= fun ln ->
+    Lib.Serial.write_line serial_conn ln
+  in
+  serial'
 
-let rec listen chan serial_mod =
+let rec listen serial_conn chan =
   let open Domainslib in
   let open Lwt.Infix in
-  let promised_write = Chan.recv chan |> handle_req serial_mod in
-  promised_write >>= fun () -> listen chan serial_mod
+  let serial_conn' = serial_conn >>= fun sc -> handle_req sc (Chan.recv chan) in
+  serial_conn' >>= fun _ -> listen serial_conn' chan
 
 let () =
   Arg.parse speclist (fun _ -> ()) usage_msg;
   if Bool.not !allow_select then select_check ();
   if Bool.not !ignore_fd_limit then fd_limit_check ();
 
-  let module Serial' = Lib.Serial.Make (struct
-    let port = !serial_port
-    let baud_rate = 115200
-  end) in
-  (* 'Pack' the module as a first-class module. *)
-  let serial_mod = (module Serial' : Lib.Serial_intf.Serial_type) in
-
+  let serial_conn = Lib.Serial.make { baud = 115200; port = !serial_port } in
   let load = make_load in
   let open Domainslib in
   (* Create a new OS thread channel to pass messages between this OS thread and any others spawned with [Domain.spawn]. *)
@@ -96,7 +92,7 @@ let () =
   let requester = Domain.spawn (fun _ -> Seq.iter (Chan.send main_chan) load) in
 
   (* Use the main OS thread as an asynchronous runtime, handling promised responses that are received over the channel from the [requester] OS thread. *)
-  let _ = Lwt_main.run (listen main_chan serial_mod) in
+  let _ = Lwt_main.run (listen serial_conn main_chan) in
 
   (* Await the termination of the requester thread (which will not terminate for never-ending request loads (that are infitite sequences). *)
   Domain.join requester

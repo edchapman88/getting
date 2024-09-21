@@ -1,6 +1,7 @@
 (executable
  (public_name getting)
  (name main)
+ (modes byte)
  (libraries 
    lib
    cohttp-lwt-unix

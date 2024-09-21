@@ -1,68 +1,64 @@
-open Serial_intf
-open Lwt.Infix
+type config = {
+  baud : int;
+  port : string;
+}
 
-module Make (T : Serial_config_type) = struct
-  let port = T.port
-  let baud_rate = T.baud_rate
+type oc_error = string
+(** Error type for failed serial connections. *)
 
-  module Private = struct
-    let fd =
-      Lwt_main.run
-        (Lwt_unix.openfile port [ Unix.O_RDWR; Unix.O_NONBLOCK ] 0o000)
-    (* Here the file permissions are 000 because no file should be created *)
+type chan = (Lwt_io.output Lwt_io.channel, oc_error) Result.t
 
-    let in_channel = Lwt_io.of_fd fd ~mode:Lwt_io.input
-    let out_channel = Lwt_io.of_fd fd ~mode:Lwt_io.output
-  end
+type conn = {
+  chan : chan;
+  config : config;
+}
+(** A serial output channel. *)
 
-  let set_baud_rate baud_rate =
-    (* First get the current attributes, then set them
-       * with baud rate changed *)
-    Lwt_unix.tcgetattr Private.fd >>= fun attr ->
-    Lwt_unix.tcsetattr Private.fd Unix.TCSANOW
-      {
-        attr with
-        c_ibaud = baud_rate;
-        c_obaud = baud_rate;
-        c_echo = false;
-        c_icanon = false;
-      }
+type t = conn
+(** A promised result-wrapped serail output channel. The error type of the [Result] is [oc_error]. *)
 
-  (* Initialize with desired baud rate *)
-  let () = Lwt_main.run (set_baud_rate baud_rate)
-  let read_line () = Lwt_io.read_line Private.in_channel
-  let write_line l = Lwt_io.fprintl Private.out_channel l
+let set_baud fd rate =
+  let open Lwt.Infix in
+  Lwt.bind fd (fun fd ->
+      fd |> Lwt_unix.tcgetattr >>= fun attr ->
+      Lwt_unix.tcsetattr fd Unix.TCSANOW
+        {
+          attr with
+          c_ibaud = rate;
+          c_obaud = rate;
+          c_echo = false;
+          c_icanon = false;
+        })
 
-  let wait_for_line to_wait_for =
-    (* Read from the device until [Some line] is equal to [to_wait_for] *)
-    let rec loop = function
-      | Some line when line = to_wait_for -> Lwt.return ()
-      | _ -> read_line () >>= fun line -> loop (Some line)
-    in
-    loop None
+let chan_promise_of_oc_promise (oc_promise : Lwt_io.output Lwt_io.channel Lwt.t)
+    : chan Lwt.t =
+  Lwt.try_bind
+    (fun () -> oc_promise)
+    (fun oc -> oc |> Result.ok |> Lwt.return)
+    (fun e -> e |> Printexc.to_string |> Result.error |> Lwt.return)
 
-  (* {{{ IO Loop *)
-  let rec io_loop until =
-    (* Reads a line from device and outputs to stdout
-       * Keyword is not accepted when received from device; always returns [`Continue] *)
-    let read_to_stdin () =
-      read_line () >>= fun line ->
-      Lwt_io.printl line >>= fun () -> Lwt.return `Continue
-    in
+let make config : t Lwt.t =
+  let open Lwt.Infix in
+  let fd =
+    Lwt_unix.openfile config.port [ Unix.O_RDWR; Unix.O_NONBLOCK ] 0o000
+  in
+  let oc_promise = fd >|= Lwt_io.of_fd ~mode:Lwt_io.output in
+  let setup = set_baud fd config.baud in
+  let chan_promise : chan Lwt.t =
+    setup >>= fun () -> chan_promise_of_oc_promise oc_promise
+  in
+  chan_promise >>= fun chan -> Lwt.return { chan; config }
 
-    (* Reads from stdin and writes to device
-       * If keyword is entered, returns [`Terminate] instead of [`Continue] *)
-    let write_from_stdin () =
-      Lwt_io.(read_line stdin) >>= function
-      | line when Some line <> until ->
-          write_line line >>= fun () -> Lwt.return `Continue
-      | line when Some line = until -> Lwt.return `Terminate
-      | _ -> assert false
-    in
+let warned_once = ref false
 
-    (* Take result of first function to complete, and cancel the others *)
-    Lwt.pick [ read_to_stdin (); write_from_stdin () ] >>= function
-    | `Continue -> io_loop until
-    | `Terminate -> Lwt.return ()
-  (* }}} *)
-end
+let write_line (conn : t) ln : t Lwt.t =
+  let open Lwt.Infix in
+  match conn.chan with
+  | Ok oc ->
+      warned_once := false;
+      Lwt_io.fprintl oc ln >>= fun () -> Lwt.return conn
+  | Error reason ->
+      if Bool.not !warned_once then Printf.eprintf "%s" reason;
+      warned_once := true;
+      let new_conn = make conn.config in
+      new_conn
