@@ -30,35 +30,43 @@ let set_baud fd rate =
           c_icanon = false;
         })
 
-let chan_promise_of_oc_promise (oc_promise : Lwt_io.output Lwt_io.channel Lwt.t)
-    : chan Lwt.t =
+let result_lwt_of_lwt promise =
   Lwt.try_bind
-    (fun () -> oc_promise)
-    (fun oc -> oc |> Result.ok |> Lwt.return)
+    (fun () -> promise)
+    (fun inner -> inner |> Result.ok |> Lwt.return)
     (fun e -> e |> Printexc.to_string |> Result.error |> Lwt.return)
 
 let make config : t Lwt.t =
   let open Lwt.Infix in
-  let fd =
+  let raw_fd =
     Lwt_unix.openfile config.port [ Unix.O_RDWR; Unix.O_NONBLOCK ] 0o000
   in
-  let oc_promise = fd >|= Lwt_io.of_fd ~mode:Lwt_io.output in
-  let setup = set_baud fd config.baud in
-  let chan_promise : chan Lwt.t =
-    setup >>= fun () -> chan_promise_of_oc_promise oc_promise
+  let chan_promise =
+    raw_fd >|= Lwt_io.of_fd ~mode:Lwt_io.output |> result_lwt_of_lwt
   in
+  let setup = set_baud raw_fd config.baud |> result_lwt_of_lwt in
+  setup >>= fun _ ->
   chan_promise >>= fun chan -> Lwt.return { chan; config }
 
-let warned_once = ref false
+module Once = struct
+  let once = ref false
+  let _get () = !once
+
+  let run f =
+    if Bool.not !once then (
+      f ();
+      once := true)
+
+  let reset () = once := false
+end
 
 let write_line (conn : t) ln : t Lwt.t =
   let open Lwt.Infix in
   match conn.chan with
   | Ok oc ->
-      warned_once := false;
+      Once.reset ();
       Lwt_io.fprintl oc ln >>= fun () -> Lwt.return conn
   | Error reason ->
-      if Bool.not !warned_once then Printf.eprintf "%s" reason;
-      warned_once := true;
+      Once.run (fun () -> print_endline reason);
       let new_conn = make conn.config in
       new_conn
