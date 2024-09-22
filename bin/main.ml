@@ -4,35 +4,13 @@ let make_load =
   (*of_dest ~distribution:(Point 0.01) (Uri.of_string "http://169.254.220.46:80")*)
   of_dest ~distribution:(Point 1.) (Uri.of_string "http://127.0.0.1:3000")
 
-let handle_req serial_conn req : Lib.Serial.t Lwt.t =
-  let open Lib in
-  let open Lwt.Infix in
-  let score =
-    match req with
-    | Request.Failed e -> Lwt.return (Oracle.Fail (Printexc.to_string e))
-    | Request.Sent res ->
-        Lwt.try_bind
-          (* Function to bind. *)
-            (fun () -> res)
-          (* On promise fulfilled. *)
-            (fun res ->
-            let code = Request.code_of_res res in
-            match code with
-            | 200 -> Lwt.return Oracle.Success
-            | _ -> Lwt.return (Oracle.Fail (string_of_int code)))
-          (* On promise rejected. *)
-            (fun e -> Lwt.return (Oracle.Fail (Printexc.to_string e)))
-  in
-  let serial' =
-    score >|= Oracle.string_of_score >>= fun ln ->
-    Lib.Serial.write_line serial_conn ln
-  in
-  serial'
-
 let rec listen serial_conn chan =
+  let open Lib in
   let open Domainslib in
   let open Lwt.Infix in
-  let serial_conn' = serial_conn >>= fun sc -> handle_req sc (Chan.recv chan) in
+  let response = Chan.recv chan in
+  let score = Oracle.score_of_res response in
+  let serial_conn' = serial_conn >>= fun sc -> Serial.write_of_score sc score in
   serial_conn' >>= fun _ -> listen serial_conn' chan
 
 let () =
