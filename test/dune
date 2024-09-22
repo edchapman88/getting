@@ -1,2 +1,4 @@
 (test
- (name test_getting))
+ (name test_getting)
+ (modes byte)
+ (libraries lib))
