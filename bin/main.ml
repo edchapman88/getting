@@ -1,46 +1,4 @@
 (* hilbert = 169.254.220.46 *)
-let usage_msg =
-  "getting [-allow-select-backend] [-ignore-fd-limit] -p /dev/ttyACM0"
-
-let allow_select = ref false
-let ignore_fd_limit = ref false
-let serial_port = ref "/dev/stdout"
-
-let speclist =
-  [
-    ( "-allow-select-backend",
-      Arg.Set allow_select,
-      "Allow the program to run with Lwt compiled with the 'select' backend" );
-    ( "-ignore-fd-limit",
-      Arg.Set ignore_fd_limit,
-      "Ignore the Unix file descriptor ulimit set in the calling process. When \
-       not ignored, limits <= 40,000 will raise an exception" );
-    ( "-p",
-      Arg.Set_string serial_port,
-      "Set serial port to output successful response indicator, defaults to \
-       '/dev/stdout'" );
-  ]
-
-let select_check () =
-  let open Lwt_sys in
-  if Bool.not (have `libev) then
-    failwith
-      "`Lwt` is not compiled with `libev` as a backend. This is not \
-       recommended (see README.md for details). Ignore this check with \
-       `-allow-select-backend`."
-
-let fd_limit_check () =
-  let run_check =
-    Sys.command "if [[ $(ulimit -n -S) -lt 40000 ]]; then\n exit 1\n fi"
-  in
-  match run_check with
-  | 0 -> ()
-  | _ ->
-      failwith
-        "The max Unix file descriptors limit for the calling process is < \
-         40,000 which is not recommended (see README.md for details). Ignore \
-         this check with `-ignore-fd-limit`."
-
 let make_load =
   let open Lib.Load in
   (*of_dest ~distribution:(Point 0.01) (Uri.of_string "http://169.254.220.46:80")*)
@@ -78,11 +36,9 @@ let rec listen serial_conn chan =
   serial_conn' >>= fun _ -> listen serial_conn' chan
 
 let () =
-  Arg.parse speclist (fun _ -> ()) usage_msg;
-  if Bool.not !allow_select then select_check ();
-  if Bool.not !ignore_fd_limit then fd_limit_check ();
-
-  let serial_conn = Lib.Serial.make { baud = 115200; port = !serial_port } in
+  let open Lib in
+  Cli.arg_parse ();
+  let serial_conn = Serial.make { baud = 115200; port = !Cli.serial_port } in
   let load = make_load in
   let open Domainslib in
   (* Create a new OS thread channel to pass messages between this OS thread and any others spawned with [Domain.spawn]. *)
