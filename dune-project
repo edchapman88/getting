@@ -22,7 +22,7 @@
  (depends
    odoc
    utop
-   (ocaml (>= 5.1))
+   ocaml
    dune
    cohttp
    cohttp-lwt-unix

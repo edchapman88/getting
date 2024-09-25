@@ -15,5 +15,5 @@ let fd_limit_check () =
   | _ ->
       failwith
         "The max Unix file descriptors limit for the calling process is < \
-         40,000 which is not recommended (see README.md for details). Ignore \
+         20,000 which is not recommended (see README.md for details). Ignore \
          this check with `-ignore-fd-limit`."
