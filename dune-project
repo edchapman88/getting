@@ -22,7 +22,7 @@
  (depends
    odoc
    utop
-   (ocaml (>= 5.2))
+   (ocaml (>= 5.1))
    dune
    cohttp
    cohttp-lwt-unix
