@@ -8,7 +8,7 @@ let select_check () =
 
 let fd_limit_check () =
   let run_check =
-    Sys.command "if [[ $(ulimit -n -S) -lt 40000 ]]; then\n exit 1\n fi"
+    Sys.command "if [[ $(ulimit -n -S) -lt 20000 ]]; then\n exit 1\n fi"
   in
   match run_check with
   | 0 -> ()

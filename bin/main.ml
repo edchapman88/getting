@@ -1,8 +1,8 @@
 (* hilbert = 169.254.220.46 *)
-let make_load =
-  let open Lib.Load in
-  (*of_dest ~distribution:(Point 0.01) (Uri.of_string "http://169.254.220.46:80")*)
-  of_dest ~distribution:(Point 1.) (Uri.of_string "http://127.0.0.1:3000")
+let make_load () =
+  let open Lib in
+  let rps = Cli.rps () in
+  Load.of_dest ~distribution:(Point rps) (Cli.target_uri ())
 
 let rec listen serial_conn chan =
   let open Lib in
@@ -17,7 +17,7 @@ let () =
   let open Lib in
   Cli.arg_parse ();
   let serial_conn = Serial.make { baud = 115200; port = !Cli.serial_port } in
-  let load = make_load in
+  let load = make_load () in
   let open Domainslib in
   (* Create a new OS thread channel to pass messages between this OS thread and any others spawned with [Domain.spawn]. *)
   let main_chan = Chan.make_unbounded () in
