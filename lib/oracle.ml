@@ -9,7 +9,8 @@ let string_of_score = function
 let score_of_res req : score Lwt.t =
   let score =
     match req with
-    | Request.Failed e -> Lwt.return (Fail (Printexc.to_string e))
+    | Request.Failed e ->
+        Lwt.return (Fail ("Failed to send: " ^ Printexc.to_string e))
     | Request.Sent res ->
         Lwt.try_bind
           (* Function to bind. *)
@@ -21,6 +22,8 @@ let score_of_res req : score Lwt.t =
             | 200 -> Lwt.return Success
             | _ -> Lwt.return (Fail (string_of_int code)))
           (* On promise rejected. *)
-            (fun e -> Lwt.return (Fail (Printexc.to_string e)))
+            (fun e -> Lwt.fail e)
+    (*Lwt.return*)
+    (*(Fail ("Response promise rejected: " ^ Printexc.to_string e)))*)
   in
   score

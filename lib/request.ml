@@ -18,4 +18,17 @@ let meta_of_res res = res |> s_meta_of_res |> Sexplib0.Sexp.to_string_hum
 
 let send params =
   let open Cohttp_lwt_unix in
-  try Sent (Client.get params.dest) with e -> Failed e
+  let ip =
+    match Ipaddr.of_string "169.254.220.46" with
+    | Ok ip -> ip
+    | Error _ -> failwith "failed to parse IP address"
+  in
+  let ctx =
+    let resolver =
+      let h = Hashtbl.create 1 in
+      Hashtbl.add h "serving.local" (`TCP (ip, 443));
+      Resolver_lwt_unix.static h
+    in
+    Cohttp_lwt_unix.Client.custom_ctx ~resolver ()
+  in
+  try Sent (Client.get ~ctx params.dest) with e -> Failed e

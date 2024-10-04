@@ -1,6 +1,8 @@
 let usage_msg =
-  "getting [-allow-select-backend] [-ignore-fd-limit] [-no-tls] [-p <port>] \
-   [-r <rate>] <host>"
+  "\n\
+  \ getting [-allow-select-backend] [-ignore-fd-limit] [-no-tls] [-p <port>] \
+   [-r <rate>] <uri> \n\n\
+  \ Example: getting https://serving.local\n"
 
 let allow_select = ref false
 let ignore_fd_limit = ref false
@@ -32,23 +34,8 @@ let speclist =
        to 3. rps." );
   ]
 
-let parse_host host_name =
-  let uri =
-    match String.split_on_char ':' host_name with
-    | [] ->
-        failwith
-          "You must provide a target host (e.g. a hostname like 'google.com', \
-           or an IP address with a port like '127.0.0.1:3000'). See --help for \
-           a list of options."
-    | [ host ] -> Uri.make ~host ()
-    | [ host; port ] -> Uri.make ~host ~port:(int_of_string port) ()
-    | _ -> failwith "Unable to parse host. Only zero or one ':' is allowed."
-  in
-  let scheme = if !tls then "https" else "http" in
-  Uri.with_scheme uri (Some scheme)
-
 let rps () = !request_rate
-let target_uri () = parse_host !host
+let target_uri () = Uri.of_string !host
 
 let arg_parse () =
   let open System_checks in
