@@ -38,9 +38,12 @@ let rps () = !request_rate
 let target_uri () = Uri.of_string !host
 
 let arg_parse () =
-  let open System_checks in
   let anon_fun target_host = host := target_host in
   Arg.parse speclist anon_fun usage_msg;
-  print_endline (Uri.to_string (target_uri ()));
+  if String.length !host == 0 then
+    failwith
+      "The URI of the target must be provided. See --help for usage \
+       instructions.";
+  let open System_checks in
   if Bool.not !allow_select then select_check ();
   if Bool.not !ignore_fd_limit then fd_limit_check ()
