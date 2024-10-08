@@ -23,6 +23,9 @@
    odoc
    utop
    ocaml
+   core
+   yaml
+   ppx_deriving_yaml
    dune
    cohttp
    cohttp-lwt-unix

@@ -1,5 +1,8 @@
 (library
  (name lib)
  (libraries
+   core
+   yaml
    uri
-   cohttp-lwt-unix))
+   cohttp-lwt-unix)
+ (preprocess (pps ppx_deriving_yaml)))

@@ -48,26 +48,16 @@ let make config : t Lwt.t =
   setup >>= fun _ ->
   chan_promise >>= fun chan -> Lwt.return { chan; config }
 
-module Once = struct
-  let once = ref false
-  let _get () = !once
-
-  let run f =
-    if Bool.not !once then (
-      f ();
-      once := true)
-
-  let reset () = once := false
-end
+module Warning = Once.Make ()
 
 let write_line (conn : t) ln : t Lwt.t =
   let open Lwt.Infix in
   match conn.chan with
   | Ok oc ->
-      Once.reset ();
+      Warning.reset ();
       Lwt_io.fprintl oc ln >>= fun () -> Lwt.return conn
   | Error reason ->
-      Once.run (fun () -> print_endline reason);
+      Warning.once (fun () -> print_endline reason);
       let new_conn = make conn.config in
       new_conn
 
