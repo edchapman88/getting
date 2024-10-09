@@ -12,10 +12,14 @@
         pkgs = nixpkgs.legacyPackages.${system};
         on = opam-nix.lib.${system};
         scope =
-          on.buildDuneProject { } package ./. { ocaml-base-compiler = "*"; };
+          on.buildDuneProject { pkgs = pkgs.pkgsStatic; } package ./. { ocaml-base-compiler = "*"; };
         overlay = final: prev:
           {
-            # Your overrides go here
+              postInstall = ''
+                mkdir -p "$OCAMLFIND_DESTDIR/stublibs"
+                ln -s "$OCAMLFIND_DESTDIR"/${final.pname}/dll*.so "$OCAMLFIND_DESTDIR"/stublibs/
+              '';
+
           };
       in {
         legacyPackages = scope.overrideScope' overlay;
