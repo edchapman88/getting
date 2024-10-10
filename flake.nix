@@ -15,11 +15,7 @@
           on.buildDuneProject { } package ./. { ocaml-base-compiler = "*"; };
         overlay = final: prev:
           {
-              postInstall = ''
-                mkdir -p "$OCAMLFIND_DESTDIR/stublibs"
-                ln -s "$OCAMLFIND_DESTDIR"/${final.pname}/dll*.so "$OCAMLFIND_DESTDIR"/stublibs/
-              '';
-
+            # Your overrides go here
           };
       in {
         legacyPackages = scope.overrideScope' overlay;
