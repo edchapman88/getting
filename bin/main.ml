@@ -1,8 +1,8 @@
 (* hilbert = 169.254.220.46 *)
 let make_load () =
   let open Lib in
-  let rps = Cli.rps () in
-  Load.of_dest ~distribution:(Point rps) (Cli.target_uri ())
+  let interval = Cli.r_interval () in
+  Load.of_dest ~distribution:(Point interval) (Cli.target_uri ())
 
 let rec listen serial_conn chan =
   let open Lib in
