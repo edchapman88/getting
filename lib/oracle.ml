@@ -22,8 +22,8 @@ let score_of_res req : score Lwt.t =
             | 200 -> Lwt.return Success
             | _ -> Lwt.return (Fail (string_of_int code)))
           (* On promise rejected. *)
-            (fun e -> Lwt.fail e)
-    (*Lwt.return*)
-    (*(Fail ("Response promise rejected: " ^ Printexc.to_string e)))*)
+            (fun e ->
+            Lwt.return
+              (Fail ("Response promise rejected: " ^ Printexc.to_string e)))
   in
   score
