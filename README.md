@@ -31,3 +31,41 @@ The exception caused by a high load when the file descriptor limit is too low is
 
 The full set of `Unix` exception types can be found [here](https://ocaml.org/manual/5.2/api/Unix.html).
 
+# Microprobe
+This repository contains a helper tool to be used as a system probe: parsing and analysing the serial output from the web client in real-time on a microcontroller. The tool is designed specifically for the [BBC microbit](https://microbit.org/), but the source code could be used as inspiration for alternatives.
+
+## Usage
+1. Plug the microbit in to a USB port, it will by recognised as a USB storage device.
+2. Flash the `.hex` file onto a microbit by copying the file onto the device.
+3. Plug the microbit into the device running the web client.
+4. Establish the file system path to the microbit device (e.g. `ls /dev/tty.*` or `ls /dev/cu.*`).
+5. Pass the file system path to the web client CLI (e.g. with `-p /dev/tty.ACM0`).
+6. The microbit LED display is used to show whether `0`s or `1`s are emitted by the web client on the serial port (`0`, request failed, LED off; `1`, request succeeded, LED on).
+7. It takes some time (around 10s to 3 minutes depending on the configuration of the probe and the web client request rate) to fill up the evaluation buffer on the microbit, after which there will be a high pitched buzz.
+7. Thereafter, if **either**:
+    - the proportion of requests that are successful is < some constant `gamma`
+    **or:
+    - the rate of successful requests is < some constant rate `lambda` 
+    then a lower pitched buzzer will sound on the microbit.
+8. `gamma` and `lambda` are configured in the source code for the tool, discussed below.
+
+## Configuration and Compiling
+`./microprobe.js` is source code that is compiled to the `./microbit_show_serial.hex` file. The source code depends on libraries made available by Microsoft. It is most easily compiling by pasting the code into a new project on the Microsoft Makecode website, [makecode.microbit.org](https://makecode.microbit.org/), after which a `.hex` file can be downloaded or flashed directly onto a microbit that is plugged in.
+
+## Example Scenario
+- Web server successfully responding to 80% of the incoming requests, on average.
+- Probe configured with `gamma = 0.9` and `lambda = 10`.
+
+Two possible scenarios:
+1. **Low Load - judged against the `gamma` criteria**
+    - Web client making 5 Queries Per Second (QPS).
+    - It takes two minutes to initialise the probe.
+    - Neither criteria are met, so the buzzer is on.
+    - If the server would instead have to correctly respond to 95% of incoming requests to satisfy the `gamma` criteria and the buzzer would not sound.
+2. **High Load - judged against the `lambda` criteria**
+    - Web client making 20 Queries Per Second (QPS).
+    - It takes 30 seconds to initialise the probe.
+    - The `lambda` criteria is met, so the buzzer does not sound.
+    - On average the server responds correctly at a rate of 16 Responses Per Second (RPS) (0.8 * 20), and this is above the `lambda` criteria of 10 (RPS).
+    - Even if the server only responds to just over 50% of the requests in this high load scenario, the `lambda` criteria is met.
+
