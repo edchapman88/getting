@@ -1,72 +1,119 @@
 // ___ Config ___
-// gamma: the minimum acceptable proportion of requests that must
-// receive correct responses
-let gamma = 0.8;
+// Gamma: the minimum acceptable proportion of requests that must
+// receive correct responses.
+let gamma = 0.9;
 
-// lambda: the minimum acceptable rate of correct responses (RPM)
-let lambda = 100;
+// Lambda: the minimum acceptable rate of correct responses (RPS).
+let lambda = 10;
 
-// length of the results buffer
-let q_len = 25;
+// Length of the rolling evaluation window (ms).
+let windowLen = 5 * 1000
+
+// The maximum RPS expected during operation, used to size the
+// internal buffer.
+let maxSupportedRps = 100
+
+// minimum required length of the results buffer
+// to support up to maxSupportedRps for the chosen eval window
+// add a factor of 1.2 to be above the minimum
+let q_len = Math.max(25,Math.round(1.2 * maxSupportedRps * (windowLen/1000)));
 // ______________
 
+class Response {
+    time: number;
+    val: string;
+    constructor(time:number, val:string) {
+        this.time = time;
+        this.val = val;
+    }
+    isCorrect() {
+        return this.val == "1";
+    }
+}
 
 class Queue {
-    len: number;
-    buffer: string[];
-    correct: number;
-    threshold: number;
-    counter: number;
-    constructor (len: number) {
-        this.len = len;
+    bufferLen: number;
+    buffer: Response[];
+    // keep track of the number of correct responses in the window
+    correct: number = 0;
+    // the number of correct responses in the window to meet the
+    // response rate requirement
+    lambdaThreshold: number = Math.round(lambda * windowLen / 1000);
+    counter: number = 0;
+    // init as 1 because queue.shift() occurs before seekWindowCur()
+    windowCur: number = 0;
+
+    constructor (bufferLen: number) {
+        this.bufferLen = bufferLen;
         let buf = [];
-        this.correct = 0;
-        this.threshold = Math.round(gamma * len);
-        this.counter = 0;
-        for (let index = 0; index < len; index++) {
-            buf.push("0");
+        for (let index = 0; index < bufferLen; index++) {
+            buf.push(new Response(0,"0"));
         }
         this.buffer = buf;
     }
     shift() {
-        let drop = this.buffer.shift();
-        if (drop == "1") {
-            this.correct -= 1;
-        }
+        this.buffer.shift();
+        this.windowCur = Math.max(0,this.windowCur - 1);
     }
     push(val:string) {
-        this.buffer.push(val);
-        if (val == "1") {
+        let response = new Response(control.millis(), val)
+        this.buffer.push(response);
+        if (response.isCorrect()) {
             this.correct += 1;
         }
-        if (!this.buffer_init_complete()) {
+        if (!this.bufferInitComplete()) {
             this.counter += 1;
+            if (this.counter > this.bufferLen) {
+                this.buzz(700)
+            }
         }
     }
-    buffer_init_complete(){
-        return this.counter >= this.len
+    bufferInitComplete() {
+        return this.counter > this.bufferLen
     }
-    light_up(){
-        light_array(this.buffer);
-    }
-    buzz(){
-        music.play(music.tonePlayable(262, music.beat(BeatFraction.Whole)), music.PlaybackMode.UntilDone);
-    }
-    proportion_is_high_enough(){
-        return this.correct > this.threshold
-    }
-    evaluate_and_buzz(){
-        if (!this.buffer_init_complete()) {
-            return ;
+    seekWindowCur() {
+        let now = control.millis();
+        function windowBeginTime (that: Queue) {
+            return that.buffer[that.windowCur].time
         }
-        let ok = (this.proportion_is_high_enough());
+        while ((now - windowBeginTime(this)) > windowLen) {
+            // drop a Response from the window
+            if (this.buffer[this.windowCur].isCorrect()) {
+                this.correct -= 1;
+            }
+            this.windowCur += 1
+        }
+        return this.windowCur
+    }
+    lightUp(){
+        let valArray = this.buffer.map(
+            (response, _) => {return response.val})
+        lightArray(valArray.slice(-25));
+    }
+    buzz(tone:number){
+        music.play(music.tonePlayable(tone, 50), music.PlaybackMode.InBackground);
+    }
+    proportionIsHighEnough(){
+        let windowCur = this.seekWindowCur();
+        let windowNumElems = q_len - windowCur;
+        let gammaThreshold = gamma * windowNumElems;
+        return this.correct > gammaThreshold
+    }
+    rateIsHighEnough(){
+        return this.correct > this.lambdaThreshold
+    }
+    evaluateAndBuzz(){
+        if (!this.bufferInitComplete()) {
+            return;
+        }
+        let ok = (this.proportionIsHighEnough() || this.rateIsHighEnough());
         if (!ok) {
-            this.buzz();
+            this.buzz(260);
         }
     }
 }
 
-function light_array (array: string[]) {
+function lightArray (array: string[]) {
     for (let i = 0; i <= 4; i++) {
         for (let j = 0; j <= 4; j++) {
             if (array[i + j * 5] == "1") {
@@ -80,17 +127,16 @@ function light_array (array: string[]) {
 
 function main() {
     let queue = new Queue(q_len);
-    queue.buzz();
+    queue.buzz(500);
 
     let ln = "";
     while (true) {
         ln = serial.readLine()
         queue.shift();
         queue.push(ln);
-        queue.light_up();
-        queue.evaluate_and_buzz();
+        queue.lightUp();
+        queue.evaluateAndBuzz();
     }
 }
 
 main();
-
