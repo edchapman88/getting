@@ -3,19 +3,20 @@
 // receive correct responses.
 let gamma = 0.9;
 
-// Lambda: the minimum acceptable rate of correct responses (RPS).
+// Lambda: the minimum acceptable rate of correct Responses Per
+// Second (RPS).
 let lambda = 10;
 
-// Length of the rolling evaluation window (ms).
+// Length of the rolling evaluation window (milliseconds).
 let windowLen = 5 * 1000
 
-// The maximum RPS expected during operation, used to size the
-// internal buffer.
+// The maximum Queries Per Second (QPS) expected during operation,
+// used to size the internal buffer.
 let maxSupportedRps = 100
 
-// minimum required length of the results buffer
-// to support up to maxSupportedRps for the chosen eval window
-// add a factor of 1.2 to be above the minimum
+// Minimum required length of the results buffer
+// to support up to maxSupportedRps for the chosen eval window,
+// adding a factor of 1.2 to be above the minimum.
 let q_len = Math.max(25,Math.round(1.2 * maxSupportedRps * (windowLen/1000)));
 // ______________
 
