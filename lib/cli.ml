@@ -1,12 +1,13 @@
 let usage_msg =
   "\n\
-  \ getting [-allow-select-backend] [-ignore-fd-limit] [-no-tls] [-p \
-   <serial-port>] [-h <host-file>] [-i <interval>] <uri> \n\n\
+  \ getting [-allow-select-backend] [-ignore-fd-limit] [-no-tls] \
+   [-serial-debug] [-p <serial-port>] [-h <host-file>] [-i <interval>] <uri> \n\n\
   \ Example: getting https://serving.local\n"
 
 let allow_select = ref false
 let ignore_fd_limit = ref false
 let tls = ref true
+let include_debug = ref false
 let serial_port = ref "/dev/stdout"
 let host_file = ref ""
 let request_interval = ref 1.
@@ -25,6 +26,10 @@ let speclist =
       Arg.Bool (fun no_tls -> tls := Bool.not no_tls),
       "Connect without TLS using the http protocol, the default is to use \
        https with TLS." );
+    ( "-serial-debug",
+      Arg.Set include_debug,
+      "Include debug information over the serial connection, by default only \
+       '0's and '1's are returned to maximise data transfer rate." );
     ( "-p",
       Arg.Set_string serial_port,
       "Optionally set serial port to output successful response indicator, \
@@ -39,6 +44,7 @@ let speclist =
        seconds, defaults to 1.0." );
   ]
 
+let serial_debug () = !include_debug
 let r_interval () = !request_interval
 let target_uri () = Uri.of_string !host
 

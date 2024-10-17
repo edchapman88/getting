@@ -4,7 +4,7 @@ type score =
 
 let string_of_score = function
   | Success -> "1"
-  | Fail reason -> "0 : " ^ reason
+  | Fail reason -> if Cli.serial_debug () then "0 : " ^ reason else "0"
 
 let score_of_res req : score Lwt.t =
   let score =
