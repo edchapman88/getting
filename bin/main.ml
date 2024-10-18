@@ -1,8 +1,20 @@
-(* hilbert = 169.254.220.46 *)
 let make_load () =
   let open Lib in
   let interval = Cli.r_interval () in
-  Load.of_dest ~distribution:(Point interval) (Cli.target_uri ())
+  if Cli.rectangular_wave () then
+    let rate = 1. /. interval in
+    let rect_wave : Load.rect_wave =
+      {
+        (*Request rate (requests/second) during each pulse. *)
+        amplitude = rate;
+        (* Pulse length of 90ms. *)
+        pulse_length = 90. /. 1000.;
+        (* Rectangular wave period of 1s. *)
+        period = 1.;
+      }
+    in
+    Load.of_dest ~distribution:(RectWave rect_wave) (Cli.target_uri ())
+  else Load.of_dest ~distribution:(Point interval) (Cli.target_uri ())
 
 let rec listen serial_conn chan =
   let open Lib in
