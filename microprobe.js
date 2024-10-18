@@ -17,18 +17,27 @@ let maxSupportedRps = 100
 // Minimum required length of the results buffer
 // to support up to maxSupportedRps for the chosen eval window,
 // adding a factor of 1.2 to be above the minimum.
-let q_len = Math.max(25,Math.round(1.2 * maxSupportedRps * (windowLen/1000)));
+let q_len = Math.max(25, Math.round(1.2 * maxSupportedRps * (windowLen / 1000)));
 // ______________
 
 class Response {
     time: number;
-    val: string;
-    constructor(time:number, val:string) {
+    val: boolean;
+    constructor(time: number, val: Buffer) {
         this.time = time;
-        this.val = val;
+        switch (val.toString()) {
+            case "1":
+                this.val = true
+                break;
+            case "0":
+                this.val = false
+                break;
+            default:
+                error("Invalid byte: ".concat(val.toString()))
+        }
     }
     isCorrect() {
-        return this.val == "1";
+        return this.val;
     }
 }
 
@@ -44,19 +53,19 @@ class Queue {
     // init as 1 because queue.shift() occurs before seekWindowCur()
     windowCur: number = 0;
 
-    constructor (bufferLen: number) {
+    constructor(bufferLen: number) {
         this.bufferLen = bufferLen;
         let buf = [];
         for (let index = 0; index < bufferLen; index++) {
-            buf.push(new Response(0,"0"));
+            buf.push(new Response(0, Buffer.fromUTF8("0")));
         }
         this.buffer = buf;
     }
     shift() {
         this.buffer.shift();
-        this.windowCur = Math.max(0,this.windowCur - 1);
+        this.windowCur = Math.max(0, this.windowCur - 1);
     }
-    push(val:string) {
+    push(val: Buffer) {
         let response = new Response(control.millis(), val)
         this.buffer.push(response);
         if (response.isCorrect()) {
@@ -74,7 +83,7 @@ class Queue {
     }
     seekWindowCur() {
         let now = control.millis();
-        function windowBeginTime (that: Queue) {
+        function windowBeginTime(that: Queue) {
             return that.buffer[that.windowCur].time
         }
         while ((now - windowBeginTime(this)) > windowLen) {
@@ -86,24 +95,24 @@ class Queue {
         }
         return this.windowCur
     }
-    lightUp(){
+    lightUp() {
         let valArray = this.buffer.map(
-            (response, _) => {return response.val})
+            response => { return response.isCorrect() })
         lightArray(valArray.slice(-25));
     }
-    buzz(tone:number){
+    buzz(tone: number) {
         music.play(music.tonePlayable(tone, 50), music.PlaybackMode.InBackground);
     }
-    proportionIsHighEnough(){
+    proportionIsHighEnough() {
         let windowCur = this.seekWindowCur();
         let windowNumElems = q_len - windowCur;
         let gammaThreshold = gamma * windowNumElems;
         return this.correct > gammaThreshold
     }
-    rateIsHighEnough(){
+    rateIsHighEnough() {
         return this.correct > this.lambdaThreshold
     }
-    evaluateAndBuzz(){
+    evaluateAndBuzz() {
         if (!this.bufferInitComplete()) {
             return;
         }
@@ -114,10 +123,10 @@ class Queue {
     }
 }
 
-function lightArray (array: string[]) {
+function lightArray(array: boolean[]) {
     for (let i = 0; i <= 4; i++) {
         for (let j = 0; j <= 4; j++) {
-            if (array[i + j * 5] == "1") {
+            if (array[i + j * 5]) {
                 led.plot(i, j)
             } else {
                 led.unplot(i, j)
@@ -127,17 +136,24 @@ function lightArray (array: string[]) {
 }
 
 function main() {
+    serial.setBaudRate(115200);
     let queue = new Queue(q_len);
     queue.buzz(500);
 
-    let ln = "";
     while (true) {
-        ln = serial.readLine()
         queue.shift();
-        queue.push(ln);
+        queue.push(serial.readBuffer(1));
         queue.lightUp();
         queue.evaluateAndBuzz();
     }
 }
 
+function error(msg: string) {
+    while (true) {
+        basic.showString(msg);
+        pause(10000);
+    }
+}
+
 main();
+
