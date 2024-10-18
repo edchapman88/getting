@@ -22,7 +22,13 @@ let rec listen serial_conn chan =
   let open Lwt.Infix in
   let response = Chan.recv chan in
   let score = Oracle.score_of_res response in
+  let log =
+    match Cli.log_path () with
+    | None -> Lwt.return ()
+    | Some path -> score >|= fun s -> Log.write_of_score path s
+  in
   let serial_conn' = serial_conn >>= fun sc -> Serial.write_of_score sc score in
+  log >>= fun () ->
   serial_conn' >>= fun _ -> listen serial_conn' chan
 
 let () =

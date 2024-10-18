@@ -63,7 +63,9 @@ let write_line (conn : t) ln : t Lwt.t =
 
 let write_of_score serial_conn score =
   let open Lwt.Infix in
+  let debug = Cli.serial_debug () in
   let serial' =
-    score >|= Oracle.string_of_score >>= fun ln -> write_line serial_conn ln
+    score >|= Oracle.string_of_score ~debug >>= fun ln ->
+    write_line serial_conn ln
   in
   serial'
