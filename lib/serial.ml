@@ -55,7 +55,7 @@ let write_line (conn : t) ln : t Lwt.t =
   match conn.chan with
   | Ok oc ->
       Warning.reset ();
-      Lwt_io.fprintl oc ln >>= fun () -> Lwt.return conn
+      Lwt_io.fprint oc ln >>= fun () -> Lwt.return conn
   | Error reason ->
       Warning.once (fun () -> print_endline reason);
       let new_conn = make conn.config in
