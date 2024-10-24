@@ -1,7 +1,8 @@
 let file_of_path (path : string) =
   let path = if String.ends_with ~suffix:"/" path then path else path ^ "/" in
-  (* Read and write for all users.*)
-  Unix.mkdir path 0o777;
+  (try (* Read and write for all users.*)
+       Unix.mkdir path 0o777
+   with Unix.Unix_error (Unix.EEXIST, _, _) -> ());
   let open Core.Time_float in
   open_out (path ^ to_filename_string ~zone:Zone.utc (now ()) ^ ".txt")
 
