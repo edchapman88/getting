@@ -1,5 +1,12 @@
+let file_of_path (path : string) =
+  let path = if String.ends_with ~suffix:"/" path then path else path ^ "/" in
+  (* Read and write for all users.*)
+  Unix.mkdir path 0o777;
+  let open Core.Time_float in
+  open_out (path ^ to_filename_string ~zone:Zone.utc (now ()) ^ ".txt")
+
 let oc = ref None
-let init_oc path = oc := Some (open_out path)
+let init_oc path = oc := Some (file_of_path path)
 
 let rec write_of_score path score =
   match !oc with

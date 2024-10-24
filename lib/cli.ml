@@ -2,7 +2,7 @@ let usage_msg =
   "\n\
   \ Usage:\n\
   \ getting [-allow-select-backend] [-ignore-fd-limit] [-no-tls] \
-   [-serial-debug] [-rect-wave] [-l <log-file>] [-p <serial-port>] [-h \
+   [-serial-debug] [-rect-wave] [-l <log-dir>] [-p <serial-port>] [-h \
    <host-file>] [-i <interval>] <uri> \n\n\
   \ Example:\n\
   \ getting https://serving.local\n\n\
@@ -14,7 +14,7 @@ let tls = ref true
 let include_debug = ref false
 let rect_wave = ref false
 let serial_port = ref "/dev/stdout"
-let log_file = ref ""
+let log_dir = ref ""
 let host_file = ref ""
 let request_interval = ref 1.
 let host = ref ""
@@ -44,8 +44,8 @@ let speclist =
        In the absence of this flag a load with a constant request rate is \
        applied.\n" );
     ( "-l",
-      Arg.Set_string log_file,
-      ": Optionally write to a log file at the specified location with \
+      Arg.Set_string log_dir,
+      ": Optionally write a log file in the specified directory with \
        information about the success or failure of each request.\n" );
     ( "-p",
       Arg.Set_string serial_port,
@@ -65,7 +65,7 @@ let serial_debug () = !include_debug
 let rectangular_wave () = !rect_wave
 let r_interval () = !request_interval
 let target_uri () = Uri.of_string !host
-let log_path () = if String.length !log_file == 0 then None else Some !log_file
+let log_path () = if String.length !log_dir == 0 then None else Some !log_dir
 
 let arg_parse () =
   let anon_fun target_host = host := target_host in
