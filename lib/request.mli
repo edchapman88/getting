@@ -12,16 +12,16 @@ type params = {
 }
 (** Configurable request parameters. *)
 
-val code_of_res : res -> int
+val code_of_res : res -> int Lwt.t
 (** Convenience function to return the status code of a response as an [int]. *)
 
 val body_of_res : res -> string Lwt.t
 (** Convenience function to return a response body as a promised human readable string. *)
 
-val meta_of_res : res -> string
+val meta_of_res : res -> string Lwt.t
 (** Convenience function to return response meta data as a human readable string. Note conversion to an S expression with [s_meta_of_res] may be more appropriate for some use cases. *)
 
-val s_meta_of_res : res -> Sexplib0.Sexp.t
+val s_meta_of_res : res -> Sexplib0.Sexp.t Lwt.t
 (** Same as [meta_of_res], but return early with a structured S expression. *)
 
 val send : params -> t

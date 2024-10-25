@@ -7,6 +7,7 @@ let string_of_score ?(debug = false) = function
   | Fail reason -> if debug then "0 : " ^ reason ^ "\n" else "0"
 
 let score_of_res req : score Lwt.t =
+  let open Lwt.Infix in
   let score =
     match req with
     | Request.Failed e ->
@@ -17,10 +18,10 @@ let score_of_res req : score Lwt.t =
             (fun () -> res)
           (* On promise fulfilled. *)
             (fun res ->
-            let code = Request.code_of_res res in
+            res |> Request.code_of_res >|= fun code ->
             match code with
-            | 200 -> Lwt.return Success
-            | _ -> Lwt.return (Fail (string_of_int code)))
+            | 200 -> Success
+            | _ -> Fail (string_of_int code))
           (* On promise rejected. *)
             (fun e ->
             Lwt.return
