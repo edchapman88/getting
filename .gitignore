@@ -2,3 +2,4 @@ _build/*
 _opam/*
 result
 hosts.yaml
+got_logs
