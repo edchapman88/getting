@@ -77,4 +77,4 @@ let arg_parse () =
   let open System_checks in
   if Bool.not !allow_select then select_check ();
   if Bool.not !ignore_fd_limit then fd_limit_check ();
-  if String.length !host_file > 0 then Resolver.parse_resolver !host_file
+  if String.length !host_file > 0 then Resolver.init_from_yaml !host_file
