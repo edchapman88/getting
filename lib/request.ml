@@ -9,22 +9,23 @@ type params = {
   dest : Uri.t;
 }
 
-let resp_of_res res =
+let body_of_res res = res |> snd |> Cohttp_lwt.Body.to_string
+
+(** Module private helper for [meta_of_res]. Drains the response body before returning the response metadata. The body must be consumed otherwise Cohttp leaks connections, resulting in [Unix.Unix_error(EMFILE,"socket","")] errors (each open connection has associated unix file descriptor). *)
+let drained_meta_of_res res =
   let open Lwt.Infix in
   let resp, _body = res in
-  (* The body must be consumed otherwise Cohttp leaks connections, resulting in [Unix.Unix_error(EMFILE,"socket","")] errors (each open connection has associated unix file descriptor). *)
   let drained = Cohttp_lwt.Body.drain_body _body in
   drained >|= fun () -> resp
 
 let code_of_res res =
   let open Lwt.Infix in
-  res |> resp_of_res >|= Cohttp.Response.status >|= Cohttp.Code.code_of_status
-
-let body_of_res res = res |> snd |> Cohttp_lwt.Body.to_string
+  res |> drained_meta_of_res >|= Cohttp.Response.status
+  >|= Cohttp.Code.code_of_status
 
 let s_meta_of_res res =
   let open Lwt.Infix in
-  res |> resp_of_res >|= Cohttp.Response.sexp_of_t
+  res |> drained_meta_of_res >|= Cohttp.Response.sexp_of_t
 
 let meta_of_res res =
   let open Lwt.Infix in
