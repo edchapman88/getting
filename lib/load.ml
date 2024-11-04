@@ -1,43 +1,39 @@
-type rect_wave = {
-  amplitude : float;  (** The request rate (requests/second) during bursts. **)
-  period : float;  (** The delay in seconds between request bursts. **)
-  pulse_length : float;  (** The duration of request bursts in seconds. **)
-}
-(** Parameters for request load where the request rate follows a Rectangular Wave. **)
+type t = Request.t Seq.t
 
-(** Parameterised probability distrubutions *)
+type rect_wave = {
+  amplitude : float;  (** The request rate (requests/second) during bursts. *)
+  period : float;  (** The delay in seconds between request bursts. *)
+  pulse_length : float;  (** The duration of request bursts in seconds. *)
+}
+
 type distr =
   | Point of float
   | Uniform of (float * float)
   | Normal of (float * float)
   | RectWave of rect_wave
 
-type t = Request.t Seq.t
-(** Representation type for a request load. *)
-
 type params = {
   distribution : distr;
   destination : Uri.t;
 }
-(** Parameters for a request load. The load is modelled by the probability over the interval (in seconds) between requests. *)
 
-(** Infinite sequences of thread blocking delays, parameterised by a [Load.distr]. The delays can by mapped or interleaved with other sequences. **)
+(** Private module for (optionally infinite) sequences of thread blocking delays, parameterised by a [Load.distr]. The delays can by mapped or interleaved with other sequences. *)
 module Delay : sig
   type t = unit Seq.t
-  (** [Delay.t] is a sequence [xs] that when called ([xs()]) produces an element of type [unit] after a desired delay. **)
+  (** [Delay.t] is a sequence [xs] that when called ([xs()]) produces an element of type [unit] after a desired delay. *)
 
   val of_distr : distr -> t
-  (** [of_distr distr] returns a [Delay.t] with the properites described in the distribution [distr]. **)
+  (** [of_distr distr] returns a [Delay.t] with the properites described in the distribution [distr]. *)
 end = struct
   type t = unit Seq.t
 
   (** [delay secs] is a thread blocking delay of [secs] seconds. *)
   let delay = Unix.sleepf
 
-  (** Given the inter-request interval that parameterises a [Load.distr.Point] distribution, return a [Delay.t]. **)
+  (** Given the inter-request interval that parameterises a [Load.distr.Point] distribution, return a [Delay.t]. *)
   let of_point interval_secs = Seq.forever (fun () -> delay interval_secs)
 
-  (** Given the parameters of a [Load.distr.RectWave] distribution, return a [Delay.t]. **)
+  (** Given the parameters of a [Load.distr.RectWave] distribution, return a [Delay.t]. *)
   let of_rect_wave params =
     let n_in_pulse =
       params.pulse_length *. params.amplitude |> Float.round |> int_of_float
@@ -72,7 +68,6 @@ let of_params p =
   let make_request () = Request.send (req_params_of_params p) in
   Seq.map make_request delays
 
-(** [of_dest d] returns a request load configured for the destination [d] with a default request interval that is constant and 10 seconds. *)
 let of_dest ?(distribution = Point 10.) destination =
   let p = { distribution; destination } in
   of_params p

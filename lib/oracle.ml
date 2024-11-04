@@ -6,7 +6,7 @@ let string_of_score ?(debug = false) = function
   | Success -> if debug then "1\n" else "1"
   | Fail reason -> if debug then "0 : " ^ reason ^ "\n" else "0"
 
-let score_of_res req : score Lwt.t =
+let score_of_req req : score Lwt.t =
   let open Lwt.Infix in
   let score =
     match req with

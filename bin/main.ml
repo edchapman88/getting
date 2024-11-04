@@ -20,8 +20,8 @@ let rec listen serial_conn chan =
   let open Lib in
   let open Domainslib in
   let open Lwt.Infix in
-  let response = Chan.recv chan in
-  let score = Oracle.score_of_res response in
+  let request = Chan.recv chan in
+  let score = Oracle.score_of_req request in
   let log =
     match Cli.log_path () with
     | None -> Lwt.return ()

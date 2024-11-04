@@ -1,14 +1,14 @@
 type t = Request.t Seq.t
-(** A load is a lazily evaluated sequence of requests of type [Request.t]. *)
+(** A [Load.t] is a lazily evaluated (and optionally infinite) sequence of requests, each of type [Request.t]. When a [Load.t] is greedily consumed by a singe thread, requests are sent between blocking delays that are built in to generator functions that return each element of the sequence. These delays are parameterised by the distribution of the load, [distr]. *)
 
 type rect_wave = {
   amplitude : float;  (** The request rate (requests/second) during bursts. **)
   period : float;  (** The delay in seconds between request bursts. **)
   pulse_length : float;  (** The duration of request bursts in seconds. **)
 }
-(** Parameters for request load where the request rate follows a Rectangular Wave. **)
+(** Parameters for a request load with a rectangular distribution ([RectWave]). **)
 
-(** Parameterised probability distrubutions for request loads. *)
+(** Parameterised distrubutions for the time delays between each request in a request load. *)
 type distr =
   | Point of float  (** A fixed time interval between requests in seconds. **)
   | Uniform of (float * float)
