@@ -69,3 +69,5 @@ Two possible scenarios:
     - On average the server responds correctly at a rate of 16 Responses Per Second (RPS) (0.8 * 20), and this is above the `lambda` criteria of 10 (RPS).
     - Even if the server only responds to just over 50% of the requests in this high load scenario, the `lambda` criteria is met.
 
+# TLS and Sources for X509 Certificates
+The `ca-certs` package is responsible for TLS authentication. [`trust_anchors()`](https://ocaml.org/p/ca-certs/latest/doc/Ca_certs/index.html#val-trust_anchors) "detects the root CAs (trust anchors) in the operating system's trust store". In the case of MacOS, **only the CAs in the 'system roots' keychain are picked up**. This prohibits using the 'login' keychain to add custom CAs to the set of CAs trusted by `ca-certs`. There is an open [PR](https://github.com/mirage/ca-certs/pull/28) addressing this issue. Until merged, the work around is to point the `SSL_CERT_FILE` to a .pem file (a copy of the file that probably already exists at `/etc/ssl/cert.pem`) that includes the addition custom CAs. E.g. in `~/.zshrc`, `export SSL_CERT_FILE=/etc/ssl/cert_extended.pem`.
