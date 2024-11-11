@@ -1,1 +1,2 @@
 val write_of_score : string -> Oracle.score -> unit
+(** [write_of_score path score] serialises the [Oracle.score] and writes it to the end of a log file located in the file system at [path], along with a Unix timestamp in nano-seconds. [write_of_score] is expected to maintain an open file descriptor to the log file for the duration of the program. Changes to [path] during the runtime of the program are not handled gracefully. *)
