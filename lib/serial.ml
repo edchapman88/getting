@@ -8,15 +8,13 @@ type oc_error = string
 
 type chan = (Lwt_io.output Lwt_io.channel, oc_error) Result.t
 
-type conn = {
+type t = {
   chan : chan;
   config : config;
 }
-(** A serial output channel. *)
+(** A serial connection is an output channel and the config required to (re-)create it. *)
 
-type t = conn
-(** A promised result-wrapped serail output channel. The error type of the [Result] is [oc_error]. *)
-
+(** Set the baud rate on a Unix file *)
 let set_baud fd rate =
   let open Lwt.Infix in
   Lwt.bind fd (fun fd ->
@@ -30,6 +28,7 @@ let set_baud fd rate =
           c_icanon = false;
         })
 
+(** Convenience function to map an ['a lwt.t] to an [('a, string) result lwt.t]. Rejected promises are mapped to [Error]; fulfilled promises to [Ok]. *)
 let result_lwt_of_lwt promise =
   Lwt.try_bind
     (fun () -> promise)
@@ -48,15 +47,19 @@ let make config : t Lwt.t =
   setup >>= fun _ ->
   chan_promise >>= fun chan -> Lwt.return { chan; config }
 
-module Warning = Once.Make ()
+module Warning =
+Once.Make ()
+(** Make a [Once] module (a stateful module for conveniently managing side-effects that should be executed only once). *)
 
 let write_line (conn : t) ln : t Lwt.t =
   let open Lwt.Infix in
   match conn.chan with
   | Ok oc ->
+      (* In the event of a new connection, reset the [Once] module so that a new error will be displayed (once) if this new connection fails. *)
       Warning.reset ();
       Lwt_io.fprint oc ln >>= fun () -> Lwt.return conn
   | Error reason ->
+      (* In case of an error, print an error message only once. *)
       Warning.once (fun () -> print_endline reason);
       let new_conn = make conn.config in
       new_conn
