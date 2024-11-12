@@ -16,6 +16,7 @@ let make_load () =
     Load.of_dest ~distribution:(RectWave rect_wave) (Cli.target_uri ())
   else Load.of_dest ~distribution:(Point interval) (Cli.target_uri ())
 
+(** An asynchronous recursive listening loop. Receiving promised responses over a channel (sent by a seperate thread), and processing them to obtain a score which is written to a serial connection and optionally a log file. *)
 let rec listen serial_conn chan =
   let open Lib in
   let open Domainslib in
