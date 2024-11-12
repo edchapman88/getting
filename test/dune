@@ -1,2 +1,6 @@
-(test
- (name test_getting))
+(library
+ (name getting_test)
+ (libraries lib conduit-lwt)
+ (inline_tests
+   (deps ./resolver_hosts.yaml))
+ (preprocess (pps ppx_inline_test ppx_expect)))
