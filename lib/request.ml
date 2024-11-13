@@ -31,13 +31,14 @@ let meta_of_res res =
   let open Lwt.Infix in
   res |> s_meta_of_res >|= Sexplib0.Sexp.to_string_hum
 
-let send params =
+let send ?(headers = []) params =
   let open Cohttp_lwt_unix in
+  let headers = Cohttp.Header.of_list headers in
   try
     Sent
       (match Resolver.get () with
       | Some resolver ->
           let ctx = Client.custom_ctx ~resolver () in
-          Client.get ~ctx params.dest
-      | None -> Client.get params.dest)
+          Client.get ~headers ~ctx params.dest
+      | None -> Client.get ~headers params.dest)
   with e -> Failed e

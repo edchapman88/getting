@@ -24,5 +24,5 @@ val meta_of_res : res -> string Lwt.t
 val s_meta_of_res : res -> Sexplib0.Sexp.t Lwt.t
 (** Same as [meta_of_res], but return early with a structured S expression. *)
 
-val send : params -> t
-(** [send params] sends a request with parameters [params], returning a [Request.t], which is either [Sent of res Lwt.t] or [Failed of exn]. *)
+val send : ?headers:(string * string) list -> params -> t
+(** [send params] sends a request with parameters [params], returning a [Request.t], which is either [Sent of res Lwt.t] or [Failed of exn]. Additional http headers are optionally attached to the request by passing a [(string * string) list]. *)
