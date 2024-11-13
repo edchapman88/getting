@@ -1,5 +1,5 @@
 type t = Request.t Seq.t
-(** A [Load.t] is a lazily evaluated (and optionally infinite) sequence of requests, each of type [Request.t]. When a [Load.t] is greedily consumed by a singe thread, requests are sent between blocking delays that are built in to generator functions that return each element of the sequence. These delays are parameterised by the distribution of the load, [distr]. *)
+(** A [Load.t] is a lazily evaluated (and optionally infinite) sequence of requests, each of type [Request.t]. When a [Load.t] is greedily consumed by a singe thread, requests are sent between blocking delays that are built in to generator functions that return each element of the sequence. These delays are parameterised by the distribution of the load, [distr]. All requests in a [Load.t] sequence have a [Connection: close] http header attached to ensure that server-client connections are closed immediately after the response has been received by the client. *)
 
 type rect_wave = {
   amplitude : float;  (** The request rate (requests/second) during bursts. **)
