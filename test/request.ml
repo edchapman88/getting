@@ -20,12 +20,14 @@ let%expect_test "construct and send a request" =
     }
   in
   let open Lwt.Infix in
+  let headers = [ ("user-agent", "unit_tester") ] in
   let request =
     ( Lwt_unix.sleep 2.0 >>= fun () ->
-      match Request.send params with
+      match Request.send ~headers params with
       | Request.Sent res -> res
       | Request.Failed e -> raise e )
     >>= fun res -> Request.body_of_res res >|= print_endline
   in
   Lwt_main.run (Lwt.pick [ server; request ]);
-  [%expect {| ((headers((host localhost:8081)(user-agent ocaml-cohttp/5.3.1)))(meth GET)(scheme())(resource /)(version HTTP_1_1)(encoding Unknown)) |}]
+  [%expect
+    {| ((headers((user-agent unit_tester)(host localhost:8081)))(meth GET)(scheme())(resource /)(version HTTP_1_1)(encoding Unknown)) |}]
