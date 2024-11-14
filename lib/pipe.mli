@@ -3,7 +3,7 @@
 type 'a t
 (** [Pipe.t] is an encapsulated, double-threaded sync-producer-async-consumer of a promise sequence. *)
 
-val of_handler : ('a -> unit Lwt.t) -> 'a t
+val of_handler : ('a Lwt.t -> unit Lwt.t) -> 'a t
 (** [of_handler handler] creates a [Pipe.t] that handles promises of type ['a Lwt.t]  with the function [handler : 'a -> 'b]. *)
 
 val process : 'a t -> 'a Lwt.t Seq.t -> unit

@@ -11,9 +11,9 @@ let out_of_order =
   in
   List.to_seq sleeps
 
-let handle_to_list l payload =
-  l := payload :: !l;
-  Lwt.return ()
+let handle_to_list l promise =
+  let open Lwt.Infix in
+  promise >|= fun p -> l := p :: !l
 
 let printer l =
   let rec aux n =
@@ -32,4 +32,9 @@ let%expect_test "pipe a sequence of promises that resolve out-of-order" =
   let pipe = Pipe.of_handler (handle_to_list record) in
   Pipe.process pipe out_of_order;
   printer (List.rev !record);
-  [%expect {| |}]
+  [%expect {|
+    @
+    @
+    @@@
+    @@@@@
+    |}]
