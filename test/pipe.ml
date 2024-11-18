@@ -3,7 +3,7 @@ open Lib
 let out_of_order =
   let open Lwt_unix in
   let open Lwt.Infix in
-  let delays = [ 5; 1; 3; 1 ] in
+  let delays = [ 5; 1; 3; 2 ] in
   let sleeps =
     List.map
       (fun delay -> sleep (float_of_int delay) >|= fun () -> delay)
@@ -34,7 +34,7 @@ let%expect_test "pipe a sequence of promises that resolve out-of-order" =
   printer (List.rev !record);
   [%expect {|
     @
-    @
+    @@
     @@@
     @@@@@
     |}]
