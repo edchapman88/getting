@@ -30,6 +30,8 @@ let resolve_bag bag = PromiseBag.all bag >>= fun _bag -> Lwt.task () |> fst
 
 (** [async_loop chan handler ps] is the main recursive loop carried out by the async-consumer. Three tasks are carried out concurrently: polling the channel for new promises sent by the sync-producer, 'awaiting' the resolution of the promises accumulated in a [PromiseBag.t], and awaiting the resolution of a timeout - at which point the [async_loop] is re-entered. A [None] message on the channel signals the end of production by the producer and this is the only event that causes an exit from the recursion of [async_loop]. [Lwt.pick] is used to orchestrate the concurrency of the three tasks. Lwt attempts to cancel all pending promises when the promise returned by [Lwt.pick] resolves. This is desirable because the infinitely pending tasks that are possibly returned by [poll_chan] and [resolve_bag] are cancelled after each recursion of [async_loop]. The promises maintained in the promise bag are protected from cancellation with [Lwt.no_cancel]. *)
 let rec async_loop chan handler ps =
+  (* Prune the promise bag discarding resolved promises. This would be a memory leak. *)
+  let _resolved, ps = PromiseBag.filter_resolved ps in
   let event_promise =
     Lwt.pick [ poll_chan chan; resolve_bag ps; timeout 1.0 ]
   in
@@ -37,7 +39,9 @@ let rec async_loop chan handler ps =
   match event with
   | NewMsg msg -> (
       match msg with
-      | None -> PromiseBag.all ps
+      | None ->
+          PromiseBag.all ps >|= fun _bag ->
+          () (* The result from Promise.all is not meaningful to return. *)
       | Some promise ->
           let ps' =
             promise |> Lwt.no_cancel >>= handler |> PromiseBag.insert ps
