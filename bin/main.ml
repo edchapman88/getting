@@ -3,7 +3,7 @@ let make_load () =
   let interval = Cli.r_interval () in
   if Cli.rectangular_wave () then
     let rate = 1. /. interval in
-    let rect_wave : Load.rect_wave =
+    let rect_wave : Delay.rect_wave =
       {
         (*Request rate (requests/second) during each pulse. *)
         amplitude = rate;
