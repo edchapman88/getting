@@ -1,7 +1,7 @@
 open Domainslib
 open Lwt.Infix
 
-type 'a handler = 'a Lwt.t -> unit Lwt.t
+type 'a handler = 'a -> unit Lwt.t
 (** A promise handler, as specified in the interface. *)
 
 type 'a t = 'a handler
@@ -9,28 +9,41 @@ type 'a t = 'a handler
 
 let of_handler (handler : 'a handler) = handler
 
-(** Helper function to filter a promise bag, handle the resolved promises (awaiting their completion) and return a promised promise bag containing the pending promises. *)
-let filter_and_handle (handler : 'a handler) ps =
-  let resolved, pending = PromiseBag.filter_resolved ps in
-  (* Handle all resolved promises to completion. This blocks until all of the promises returned by the handler are resolved. *)
-  resolved |> PromiseBag.map handler |> PromiseBag.all >>= fun _ ->
-  Lwt.return pending
+(** A varient to capture the possible return types from the main [async_loop] carried out by the async-consumer. *)
+type 'a async_event =
+  | NewMsg of 'a Lwt.t option
+      (** A new message received on the channel from the sync-producer. *)
+  | Timeout
+      (** A timeout, used to re-enter the [async_loop] periodically to re-poll the channel. *)
 
-(** [async_loop chan handler ps] polls the channel [chan] for the existence of a buffered [Option.t]. If present, [None] signals the end of production by the producer. If present and [Some p], the promise [p] is read from the buffer and inserted into the promise bag [ps]. Only a single promise is read from the channel even if there are several buffered. *)
+(** [poll_chan chan] is one of the three tasks to be carried out concurrently by the async-consumer in the main [async_loop]. The channel [chan] is polled and if there is least one message then an immediatley fulfilled promise is returned, containing the (first) message. If the channel is currently empty then a cancellable, but infinitely pending promise is returned. *)
+let poll_chan chan =
+  match Chan.recv_poll chan with
+  | None -> Lwt.task () |> fst
+  | Some msg -> Lwt.return (NewMsg msg)
+
+(** [timeout secs] is another of the three tasks to be carried out concurrently by the async-consumer in the main [async_loop]. The promise returned will resolve after [secs] seconds. *)
+let timeout secs = secs |> Lwt_unix.sleep >|= fun () -> Timeout
+
+(** [resolve_bag bag] is another of the three tasks to be carried out concurrently by the async-consumer in the main [async_loop]. The [PromiseBag.t] [bag] is 'awaited' until all of the promises within are resolved. This occurs if the async-consumer processes promises faster than the sync-producer writes them to the channel. The async-consumer must continue listening on the channel, so a cancellable, but infinitely pending promise is returned. *)
+let resolve_bag bag = PromiseBag.all bag >>= fun _bag -> Lwt.task () |> fst
+
+(** [async_loop chan handler ps] is the main recursive loop carried out by the async-consumer. Three tasks are carried out concurrently: polling the channel for new promises sent by the sync-producer, 'awaiting' the resolution of the promises accumulated in a [PromiseBag.t], and awaiting the resolution of a timeout - at which point the [async_loop] is re-entered. A [None] message on the channel signals the end of production by the producer and this is the only event that causes an exit from the recursion of [async_loop]. [Lwt.pick] is used to orchestrate the concurrency of the three tasks. Lwt attempts to cancel all pending promises when the promise returned by [Lwt.pick] resolves. This is desirable because the infinitely pending tasks that are possibly returned by [poll_chan] and [resolve_bag] are cancelled after each recursion of [async_loop]. The promises maintained in the promise bag are protected from cancellation with [Lwt.no_cancel]. *)
 let rec async_loop chan handler ps =
-  let poll = Chan.recv_poll chan in
-  if Option.is_some poll then
-    match Option.get poll with
-    (* [None] signal the end of production by the producer, wait for all pending promises to resolve before returning from the recursive loop. *)
-    | None -> PromiseBag.map handler ps |> PromiseBag.all
-    | Some promise ->
-        let ps' = promise |> PromiseBag.insert ps in
-        filter_and_handle handler ps' >>= fun pending ->
-        async_loop chan handler pending
-  else
-    (* The buffered channel [chan] is empty. Handle any resolved promises in the current promise bag [ps] before re-entering the [async_loop] to poll the channel again. *)
-    filter_and_handle handler ps >>= fun pending ->
-    async_loop chan handler pending
+  let event_promise =
+    Lwt.pick [ poll_chan chan; resolve_bag ps; timeout 1.0 ]
+  in
+  event_promise >>= fun event ->
+  match event with
+  | NewMsg msg -> (
+      match msg with
+      | None -> PromiseBag.all ps
+      | Some promise ->
+          let ps' =
+            promise |> Lwt.no_cancel >>= handler |> PromiseBag.insert ps
+          in
+          async_loop chan handler ps')
+  | Timeout -> async_loop chan handler ps
 
 (** [produce chan xs] is the task to be executed by the synchronous producer thread. The sequence [xs] is greedily consumed and the elements immediately sent over the unbounded channel [chan]. Elements of the sequence are wrapped as [Some] values to distinguish them from the [None] value that is written to the channel when the sequence [xs] has terminated. *)
 let produce chan xs =
