@@ -7,11 +7,10 @@ let count bag = List.length bag
 (** Cons the new promise onto the list that represents the promise bag. *)
 let insert bag promise = promise :: bag
 
-(** Use [List.map]. *)
-let map f bag = bag |> List.map f
-
 (** Use [Lwt.all] directly. *)
-let all bag = bag |> Lwt.all
+let all bag =
+  let open Lwt.Infix in
+  bag |> Lwt.all >|= List.map Lwt.return
 
 let filter_resolved bag =
   (* [check_resolved resl pend ps] recursively matches on the head [p] of the list of promises [ps]. The state of [p] is checked and it is added to either the resolved ([resl]) or pending ([pend]) accumulator. [check_resolved] is then called on the tail of list. *)
@@ -25,4 +24,3 @@ let filter_resolved bag =
         | Lwt.Sleep -> check_resolved resolved (p :: pending) ps)
   in
   check_resolved [] [] bag
-
