@@ -1,8 +1,15 @@
 type res = Cohttp.Response.t * Cohttp_lwt.Body.t
 
-type t =
-  | Sent of res Lwt.t
-  | Failed of exn
+type req_failure =
+  | FailedToSend of exn  (**e.g. The connection was refused. *)
+  | FailedAfterSend of exn
+
+let string_of_req_failure = function
+  | FailedToSend e -> "Request FailedToSend with: " ^ Printexc.to_string e
+  | FailedAfterSend e -> "Request FailedAfterSend with: " ^ Printexc.to_string e
+
+type req_inner = (res, req_failure) result
+type t = req_inner Lwt.t
 
 type params = {
   src : Uri.t;
@@ -35,10 +42,15 @@ let send ?(headers = []) params =
   let open Cohttp_lwt_unix in
   let headers = Cohttp.Header.of_list headers in
   try
-    Sent
-      (match Resolver.get () with
+    let res_promise =
+      match Resolver.get () with
       | Some resolver ->
           let ctx = Client.custom_ctx ~resolver () in
           Client.get ~headers ~ctx params.dest
-      | None -> Client.get ~headers params.dest)
-  with e -> Failed e
+      | None -> Client.get ~headers params.dest
+    in
+    Lwt.try_bind
+      (fun () -> res_promise)
+      (fun res -> Lwt.return (Ok res))
+      (fun e -> Lwt.return (Error (FailedAfterSend e)))
+  with e -> Lwt.return (Error (FailedToSend e))

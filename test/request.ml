@@ -22,11 +22,14 @@ let%expect_test "construct and send a request" =
   let open Lwt.Infix in
   let headers = [ ("user-agent", "unit_tester") ] in
   let request =
-    ( Lwt_unix.sleep 2.0 >>= fun () ->
-      match Request.send ~headers params with
-      | Request.Sent res -> res
-      | Request.Failed e -> raise e )
-    >>= fun res -> Request.body_of_res res >|= print_endline
+    Lwt_unix.sleep 2.0 >>= fun () ->
+    let request = Request.send ~headers params in
+    request >>= fun req_inner ->
+    match req_inner with
+    | Ok res -> Request.body_of_res res >|= print_endline
+    | Error req_failure ->
+        req_failure |> Request.string_of_req_failure |> print_endline
+        |> Lwt.return
   in
   Lwt_main.run (Lwt.pick [ server; request ]);
   [%expect

@@ -8,5 +8,5 @@ type score =
 val string_of_score : ?debug:bool -> score -> string
 (** Serialiser for [score]. *)
 
-val score_of_req : Request.t -> score Lwt.t
-(** Score a [Request.t], returning a promise to facilitate asynchronous parsing of the request (e.g. with [Request.body_of_res] or [Request.code_of_res]). *)
+val score_of_req_inner : Request.req_inner -> score Lwt.t
+(** Score a [Request.req_inner], returning a promise to facilitate asynchronous parsing of the request (e.g. with [Request.body_of_res] or [Request.code_of_res]). *)
