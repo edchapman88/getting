@@ -1,6 +1,7 @@
 type res = Cohttp.Response.t * Cohttp_lwt.Body.t
 (** A [Cohttp] response. *)
 
+(** The request failure types. The promise [Request.t] is guaranteed to resolve fulfilled by returning the [result] [req_inner], which encapsulates the possible request failure modes with [req_failure]. *)
 type req_failure =
   | FailedToSend of exn  (**e.g. The connection was refused. *)
   | FailedAfterSend of exn
