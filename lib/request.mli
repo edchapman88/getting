@@ -5,6 +5,7 @@ type res = Cohttp.Response.t * Cohttp_lwt.Body.t
 type req_failure =
   | FailedToSend of exn  (**e.g. The connection was refused. *)
   | FailedAfterSend of exn
+  | FailedTimeout
 
 val string_of_req_failure : req_failure -> string
 (** Returns a string representation of [req_failure]. For both [FailedToSend] and [FailedAfterSend] the inner exception is printed, prepended by the name of the constructor. E.g. ["Request FailedToSend with: <string repr of inner exn>"]. *)
@@ -33,5 +34,5 @@ val meta_of_res : res -> string Lwt.t
 val s_meta_of_res : res -> Sexplib0.Sexp.t Lwt.t
 (** Same as [meta_of_res], but return early with a structured S expression. *)
 
-val send : ?headers:(string * string) list -> params -> t
-(** [send params] sends a request with parameters [params], returning a [Request.t], which is a promise that is guranteed to resolve fulfilled to [req_inner]. Request failures are represented by the [Error of req_failur] varient of [req_inner]. Additional http headers are optionally attached to the request by passing a [(string * string) list]. *)
+val send : ?timeout:float -> ?headers:(string * string) list -> params -> t
+(** [send ~timeout:30.0 params] sends a request with parameters [params], returning a [Request.t], which is a promise that is guranteed to resolve fulfilled to [req_inner]. Request failures are represented by the [Error of req_failur] varient of [req_inner]. In the absence of a response the request will timeout after 30 seconds, resolving to [Error of Timeout]. If a timeout is not specified, the connection will remain open until either i) a response is received, ii) the server closes the connection, or iii) the connection is closed by the client (in the presence of > 10,000 open connections). This force-closure by the client may occur even when request timeouts are set (e.g. if the timeouts are too long relative to the request rate). Force-closure by the client is required to put an upper bound on the memory consumption of the client program. Additional http headers are optionally attached to the request by passing a [(string * string) list]. *)
