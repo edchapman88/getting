@@ -44,6 +44,16 @@ let of_rect_wave params =
   in
   Seq.cycle period
 
+let mean_of_distr = function
+  | Point interval -> interval
+  | Uniform (start, endd) ->
+      let range = endd -. start in
+      start +. (range /. 2.0)
+  | Normal (mean, _std) -> mean
+  | RectWave params ->
+      let n_burst = params.amplitude *. params.pulse_length |> Float.round in
+      params.period /. (n_burst +. 1.0)
+
 let of_distr = function
   | Point interval -> of_point interval
   | RectWave params -> of_rect_wave params

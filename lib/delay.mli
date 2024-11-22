@@ -25,5 +25,8 @@ type distr =
   | RectWave of rect_wave
       (** An extension of the [Point] distribution, where the length of delays is fixed (and characterised by [rect_wave.amplitude]) during the up-time of rectangular wave. Between these 'bursts' of short delays there is a single, longer delay (the down-time of the rectangular wave). *)
 
+val mean_of_distr : distr -> float
+(** [mean_of_distr distr] returns the mean delay length for the distribution [distr]. *)
+
 val of_distr : distr -> t
 (** [of_distr distr] returns a [Delay.t] with the properites described in the distribution [distr]. *)
