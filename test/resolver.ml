@@ -1,4 +1,4 @@
-open Lib
+open Getting
 
 let%expect_test "load resolver from yaml file" =
   let path = "./resolver_hosts.yaml" in

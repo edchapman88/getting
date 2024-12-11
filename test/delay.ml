@@ -1,4 +1,4 @@
-open Lib
+open Getting
 open Utils
 
 let delays () = Delay.of_delays_s [ 1.0; 3.0; 2.0 ]
@@ -31,7 +31,8 @@ let%expect_test "calculate mean delay length for a [distr]" =
     RectWave { amplitude = 6.0; period = 1.0; pulse_length = 0.5 }
   in
   p_distr_mean (Delay.mean_of_distr rectwave) rectwave;
-  [%expect {|
+  [%expect
+    {|
     Uniform [2.00, 6.00] -> 4.00
     RectWave [amp=6.00, period=1.00, pulse_length=0.50] -> 0.25
     |}]

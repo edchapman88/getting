@@ -1,4 +1,4 @@
-open Lib
+open Getting
 
 let never_resolving () = Lwt.wait () |> fst
 

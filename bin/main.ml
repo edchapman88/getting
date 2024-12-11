@@ -1,7 +1,6 @@
-open Lib
+open Getting
 
 let make_load () =
-  let open Lib in
   let interval = Cli.r_interval () in
   if Cli.rectangular_wave () then
     let rate = 1. /. interval in
@@ -26,7 +25,6 @@ let handler req_inner =
   | Some path -> score >|= fun s -> Log.write_of_score path s
 
 let () =
-  let open Lib in
   Cli.arg_parse ();
   (*let serial_conn = Serial.make { baud = 115200; port = !Cli.serial_port } in*)
   let load = make_load () in
