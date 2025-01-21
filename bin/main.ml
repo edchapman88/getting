@@ -20,13 +20,16 @@ let make_load () =
 let handler req_inner =
   let open Lwt.Infix in
   let score = Oracle.score_of_req_inner req_inner in
-  match Cli.log_path () with
-  | None -> Lwt.return ()
-  | Some path -> score >|= fun s -> Log.write_of_score path s
+  let log =
+    match Cli.log_path () with
+    | None -> Lwt.return ()
+    | Some path -> score >|= fun s -> Log.write_of_score path s
+  in
+  log >>= fun () -> Serial.write_of_score score
 
 let () =
   Cli.arg_parse ();
-  (*let serial_conn = Serial.make { baud = 115200; port = !Cli.serial_port } in*)
   let load = make_load () in
+  Serial.init ();
   let pipe = Pipe.of_handler handler in
   Pipe.process pipe load

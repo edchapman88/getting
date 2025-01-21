@@ -6,13 +6,7 @@ type config = {
 type oc_error = string
 (** Error type for failed serial connections. *)
 
-type chan = (Lwt_io.output Lwt_io.channel, oc_error) Result.t
-
-type t = {
-  chan : chan;
-  config : config;
-}
-(** A serial connection is an output channel and the config required to (re-)create it. *)
+type t = (Lwt_io.output Lwt_io.channel, oc_error) Result.t
 
 (** Set the baud rate on a Unix file *)
 let set_baud fd rate =
@@ -35,8 +29,11 @@ let result_lwt_of_lwt promise =
     (fun inner -> inner |> Result.ok |> Lwt.return)
     (fun e -> e |> Printexc.to_string |> Result.error |> Lwt.return)
 
-let make config : t Lwt.t =
+let serial_conn = ref None
+
+let init () =
   let open Lwt.Infix in
+  let config = { baud = 115200; port = !Cli.serial_port } in
   let raw_fd =
     Lwt_unix.openfile config.port [ Unix.O_RDWR; Unix.O_NONBLOCK ] 0o000
   in
@@ -44,31 +41,32 @@ let make config : t Lwt.t =
     raw_fd >|= Lwt_io.of_fd ~mode:Lwt_io.output |> result_lwt_of_lwt
   in
   let setup = set_baud raw_fd config.baud |> result_lwt_of_lwt in
-  setup >>= fun _ ->
-  chan_promise >>= fun chan -> Lwt.return { chan; config }
+  let conn = setup >>= fun _ -> chan_promise in
+  serial_conn := Some conn
 
 module Warning =
 Once.Make ()
 (** Make a [Once] module (a stateful module for conveniently managing side-effects that should be executed only once). *)
 
-let write_line (conn : t) ln : t Lwt.t =
+let write_line ln =
   let open Lwt.Infix in
-  match conn.chan with
+  if Option.is_none !serial_conn then init ();
+  let conn = Option.get !serial_conn in
+  conn >>= fun chan ->
+  match chan with
   | Ok oc ->
       (* In the event of a new connection, reset the [Once] module so that a new error will be displayed (once) if this new connection fails. *)
       Warning.reset ();
-      Lwt_io.fprint oc ln >>= fun () -> Lwt.return conn
+      (* This promise is fulfilled even when a write is attempted to a hanging file descriptor, e.g. a file descriptor that was succesfully created but the file no longer exists. *)
+      Lwt_io.fprint oc ln
   | Error reason ->
-      (* In case of an error, print an error message only once. *)
+      (* In case of an error when trying to create the file descriptor (e.g. the file does not exist), print an error message only once. *)
       Warning.once (fun () -> print_endline reason);
-      let new_conn = make conn.config in
-      new_conn
+      (* And try to re-initialise the serial connection. *)
+      init ();
+      Lwt.return ()
 
-let write_of_score serial_conn score =
+let write_of_score score =
   let open Lwt.Infix in
   let debug = Cli.serial_debug () in
-  let serial' =
-    score >|= Oracle.string_of_score ~debug >>= fun ln ->
-    write_line serial_conn ln
-  in
-  serial'
+  score >|= Oracle.string_of_score ~debug >>= fun ln -> write_line ln
