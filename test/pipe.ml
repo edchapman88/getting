@@ -1,5 +1,5 @@
 open Getting
-open Utils
+open TestUtils
 
 let simulated_promises waits =
   let open Lwt.Infix in

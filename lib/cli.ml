@@ -2,8 +2,8 @@ let usage_msg =
   "\n\
   \ Usage:\n\
   \ getting [-allow-select-backend] [-ignore-fd-limit] [-no-tls] \
-   [-serial-debug] [-rect-wave] [-l <log-dir>] [-p <serial-port>] [-h \
-   <host-file>] [-i <interval>] <uri> \n\n\
+   [-serial-debug] [-rect-wave] [-l <log-dir>] [-p <serial-port>] [-u \
+   <udp-address>] [-h <host-file>] [-i <interval>] <uri> \n\n\
   \ Example:\n\
   \ getting https://serving.local\n\n\
   \ Options:"
@@ -14,6 +14,8 @@ let tls = ref true
 let include_debug = ref false
 let rect_wave = ref false
 let serial_port = ref "/dev/stdout"
+let udp_address = ref ""
+let parsed_udp_address = ref None
 let log_dir = ref ""
 let host_file = ref ""
 let request_interval = ref 1.
@@ -51,6 +53,11 @@ let speclist =
       Arg.Set_string serial_port,
       ": Optionally set serial port to output successful response indicator, \
        defaults to '/dev/stdout'.\n" );
+    ( "-u",
+      Arg.Set_string udp_address,
+      ": Optionally set a UDP IP address and port to additionally output the \
+       successful response indicator over UDP. The expected format is e.g. \
+       '192.168.0.0:8081'. \n" );
     ( "-h",
       Arg.Set_string host_file,
       ": Optionally include the location of a .yaml file describing a list of \
@@ -66,6 +73,7 @@ let rectangular_wave () = !rect_wave
 let r_interval () = !request_interval
 let target_uri () = Uri.of_string !host
 let log_path () = if String.length !log_dir == 0 then None else Some !log_dir
+let udp_unix_addr () = !parsed_udp_address
 
 let arg_parse () =
   let anon_fun target_host = host := target_host in
@@ -77,4 +85,6 @@ let arg_parse () =
   let open System_checks in
   if Bool.not !allow_select then select_check ();
   if Bool.not !ignore_fd_limit then fd_limit_check ();
-  if String.length !host_file > 0 then Resolver.init_from_yaml !host_file
+  if String.length !host_file > 0 then Resolver.init_from_yaml !host_file;
+  if String.length !udp_address > 0 then
+    parsed_udp_address := Some (Udp.addr_of_string !udp_address)
