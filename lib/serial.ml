@@ -20,6 +20,8 @@ let set_baud fd rate =
           c_obaud = rate;
           c_echo = false;
           c_icanon = false;
+          c_vtime = 5;
+          c_clocal = true;
         })
 
 (** Convenience function to map an ['a lwt.t] to an [('a, string) result lwt.t]. Rejected promises are mapped to [Error]; fulfilled promises to [Ok]. *)
