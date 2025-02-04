@@ -1,8 +1,12 @@
 let sendto addr msg =
   let open Lwt.Infix in
   let fd = Lwt_unix.socket ~cloexec:true PF_INET SOCK_DGRAM 0 in
-  Lwt_unix.sendto fd (String.to_bytes msg) 0 (String.length msg) [] addr
-  >|= fun code -> if code = -1 then Error "UDP: failed to send" else Ok ()
+  let write_ok =
+    Lwt_unix.sendto fd (String.to_bytes msg) 0 (String.length msg) [] addr
+    >|= fun code -> if code = -1 then Error "UDP: failed to send" else Ok ()
+  in
+  write_ok >>= fun _ ->
+  Lwt_unix.close fd >>= fun () -> write_ok
 
 module Warning =
 Once.Make ()
