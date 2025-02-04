@@ -1,5 +1,5 @@
 open Getting
-open Utils
+open TestUtils
 
 let delays () = Delay.of_delays_s [ 1.0; 3.0; 2.0 ]
 

@@ -24,13 +24,6 @@ let set_baud fd rate =
           c_clocal = true;
         })
 
-(** Convenience function to map an ['a lwt.t] to an [('a, string) result lwt.t]. Rejected promises are mapped to [Error]; fulfilled promises to [Ok]. *)
-let result_lwt_of_lwt promise =
-  Lwt.try_bind
-    (fun () -> promise)
-    (fun inner -> inner |> Result.ok |> Lwt.return)
-    (fun e -> e |> Printexc.to_string |> Result.error |> Lwt.return)
-
 let serial_conn = ref None
 
 let init () =
@@ -40,9 +33,9 @@ let init () =
     Lwt_unix.openfile config.port [ Unix.O_RDWR; Unix.O_NONBLOCK ] 0o000
   in
   let chan_promise =
-    raw_fd >|= Lwt_io.of_fd ~mode:Lwt_io.output |> result_lwt_of_lwt
+    raw_fd >|= Lwt_io.of_fd ~mode:Lwt_io.output |> Utils.result_lwt_of_lwt
   in
-  let setup = set_baud raw_fd config.baud |> result_lwt_of_lwt in
+  let setup = set_baud raw_fd config.baud |> Utils.result_lwt_of_lwt in
   let conn = setup >>= fun _ -> chan_promise in
   serial_conn := Some conn
 

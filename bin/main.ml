@@ -25,7 +25,10 @@ let handler req_inner =
     | None -> Lwt.return ()
     | Some path -> score >|= fun s -> Log.write_of_score path s
   in
-  log >>= fun () -> Serial.write_of_score score
+  let serial = log >>= fun () -> Serial.write_of_score score in
+  match Cli.udp_unix_addr () with
+  | None -> serial
+  | Some udp_addr -> serial >>= fun () -> Udp.write_of_score udp_addr score
 
 let () =
   Cli.arg_parse ();
