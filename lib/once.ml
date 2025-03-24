@@ -2,7 +2,7 @@
 
 module type S = sig
   val once : (unit -> unit) -> unit
-  (** [once effect] will execute the side effect on the first call on only, until [reset] is called after which the side effect is executed on the subsequent call, only. *)
+  (** [once eff] will execute the side effect on the first call on only, until [reset] is called after which the side effect is executed on the subsequent call, only. *)
 
   val reset : unit -> unit
   (** Reset the internal state such that a subsequent call to [once] does execute the provided side effect. *)
@@ -12,9 +12,9 @@ end
 module Make () : S = struct
   let doneit = ref false
 
-  let once effect =
+  let once eff =
     if Bool.not !doneit then (
-      effect ();
+      eff ();
       doneit := true)
 
   let reset () = doneit := false
