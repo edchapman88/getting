@@ -1,4 +1,4 @@
-(** A stateful module, initialised with [init ()]. The serial port address is configured (optionally at runtime) in the [Cli] module. A serial connection of type [t] is maintained as mutable state and written to by calls to [write_line] or [write_score]. **)
+(** A stateful module, initialised with [init ()]. The serial port address is configured (optionally at runtime) in the [Cli] module. A serial connection of type [t] is maintained as mutable state and written to by calls to [write_line] or [write_score]. *)
 
 type t
 (** A serial connection. *)
