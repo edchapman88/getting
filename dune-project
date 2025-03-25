@@ -20,7 +20,8 @@
  (synopsis "Simulate an HTTP(S) load.")
  (description "A longer description")
  (depends
-   odoc
+   (odoc :with-doc)
+   (odoc-driver :with-doc)
    utop
    ocaml
    core

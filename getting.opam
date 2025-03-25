@@ -10,7 +10,8 @@ homepage: "https://github.com/edchapman88/getting"
 doc: "https://url/to/documentation"
 bug-reports: "https://github.com/edchapman88/getting/issues"
 depends: [
-  "odoc"
+  "odoc" {with-doc}
+  "odoc-driver" {with-doc}
   "utop"
   "ocaml"
   "core"

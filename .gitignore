@@ -1,5 +1,6 @@
 _build/*
 _opam/*
+_html/
 result
 hosts.yaml
 got_logs
