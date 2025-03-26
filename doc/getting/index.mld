@@ -7,6 +7,42 @@ Dispatch {e timely} HTTP loads. [getting] uses two system threads to:
 
 Part of the {{:https://github.com/edchapman88/r3ace}{b R{^ 3}ACE}} project: {e Replicable} and {e Reproducible} {e Real-World} Autonomous Cyber Environments, [getting] is used to apply an HTTP load to a web server and broadcast a stream of signals to a system interface (either Serial or UDP), indicating when OK (status code = 200) responses have been received from the web server.
 
+{1 Usage}
+The [getting] executable exposes a documented Command Line Interface (CLI). To learn about the CLI options and arguments, run:
+{@bash[
+getting --help
+]}
+
+The output is as follows:
+{@plaintext[
+ Usage:
+ getting [-allow-select-backend] [-ignore-fd-limit] [-no-tls] [-serial-debug] [-rect-wave] [-l <log-dir>] [-p <serial-port>] [-u <udp-address>] [-h <host-file>] [-i <interval>] <uri> 
+
+ Example:
+ getting https://serving.local
+
+ Options:
+  -allow-select-backend : Allow the program to run with Lwt compiled with the 'select' backend.
+
+  -ignore-fd-limit : Ignore the Unix file descriptor ulimit set in the calling process. When not ignored, limits <= 20,000 will raise an exception.
+
+  -no-tls : Connect without TLS using the http protocol, the default is to use https with TLS.
+
+  -serial-debug : Include debug information over the serial connection, by default only '0's and '1's are returned to maximise data transfer rate.
+
+  -rect-wave : Apply a request load with a request rate following a rectangular wave (short pulses at the specified request rate seperated by short delays. In the absence of this flag a load with a constant request rate is applied.
+
+  -l : Optionally write a log file in the specified directory with information about the success or failure of each request.
+
+  -p : Optionally set serial port to output successful response indicator, defaults to '/dev/stdout'.
+
+  -u : Optionally set a UDP IP address and port to additionally output the successful response indicator over UDP. The expected format is e.g. '192.168.0.0:8081'. 
+
+  -h : Optionally include the location of a .yaml file describing a list of hosts for custom DNS resolution.
+
+  -i : Optionally set the request interval (delay between requests) in seconds, defaults to 1.0.
+]}
+
 {1 Installation}
 This project depends on [Lwt], which is a library to handle I/O operations with asynchronous promises. [Lwt] has two backend implementations, [libev] and [select]. [select] is limited to supporting only 1024 file descriptors which is a problem for high throughput servers or clients. With a high load, a [Unix.EINVAL] exception is raised, referencing [Unix.select] as the function responsible for the failure.
 
@@ -32,7 +68,7 @@ let () =
 ]}
 
 If this returns false, [Lwt] may not have recognised [libev]. Try setting the following environment variables and then re-installing [Lwt]:
-{[
+{@bash[
 export C_INCLUDE_PATH=<path to where libev installed>
 export LIBRARY_PATH=<path to where libev installed>
 ]}
