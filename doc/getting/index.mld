@@ -9,12 +9,12 @@ Part of the {{:https://github.com/edchapman88/r3ace}{b R{^ 3}ACE}} project: {e R
 
 {1 Usage}
 The [getting] executable exposes a documented Command Line Interface (CLI). To learn about the CLI options and arguments, run:
-{[
+{@bash[
 getting --help
 ]}
 
 The output is as follows:
-{[
+{@plaintext[
  Usage:
  getting [-allow-select-backend] [-ignore-fd-limit] [-no-tls] [-serial-debug] [-rect-wave] [-l <log-dir>] [-p <serial-port>] [-u <udp-address>] [-h <host-file>] [-i <interval>] <uri> 
 
@@ -68,7 +68,7 @@ let () =
 ]}
 
 If this returns false, [Lwt] may not have recognised [libev]. Try setting the following environment variables and then re-installing [Lwt]:
-{[
+{@bash[
 export C_INCLUDE_PATH=<path to where libev installed>
 export LIBRARY_PATH=<path to where libev installed>
 ]}
